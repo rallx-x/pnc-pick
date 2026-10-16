@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>뉴럴 클라우드 최애픽</title>
+<meta name="theme-color" content="#3a3d44">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="gray">
+<div id="bgLayer" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="brand">
+    <p class="game" id="gameTitle"></p>
+    <h1 id="siteTitle"></h1>
+  </div>
+  <div class="settings">
+    <label class="field"><span data-t="lang"></span>
+      <select id="langSel">
+        <option value="ko">한국어</option><option value="en">English</option>
+        <option value="zh">中文</option><option value="ja">日本語</option>
+      </select>
+    </label>
+    <label class="field"><span data-t="theme"></span>
+      <select id="themeSel"></select>
+    </label>
+    <label class="field" id="bgField" hidden><span data-t="bg"></span>
+      <select id="bgSel"></select>
+    </label>
+    <label class="toggle"><input type="checkbox" id="namesChk" checked><span data-t="names"></span></label>
+  </div>
+</header>
+
+<section class="notice" id="notice"></section>
+
+<nav class="tabs" role="tablist" id="tabs">
+  <button role="tab" data-tab="company"></button>
+  <button role="tab" data-tab="class"></button>
+  <button role="tab" data-tab="free"></button>
+  <button role="tab" data-tab="room" class="room-tab"></button>
+</nav>
+
+<main>
+  <!-- 1인 취향표 -->
+  <section id="singleView">
+    <div class="row">
+      <label class="field grow"><span data-t="nickname"></span>
+        <input id="nickInput" maxlength="20" autocomplete="off">
+      </label>
+    </div>
+    <div class="stage"><canvas id="singleCanvas"></canvas></div>
+    <div class="actions">
+      <button class="btn primary" id="saveBtn" data-t="save"></button>
+      <button class="btn" id="codeBtn" data-t="makeCode"></button>
+      <button class="btn ghost" id="resetBtn" data-t="reset"></button>
+    </div>
+    <div class="codebox" id="codeBox" hidden>
+      <p data-t="codeHelp"></p>
+      <div class="codeline">
+        <textarea id="codeOut" readonly rows="2"></textarea>
+        <button class="btn" id="copyBtn" data-t="copy"></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 다인 모아보기 -->
+  <section id="roomView" hidden>
+    <div class="row">
+      <label class="field grow"><span data-t="roomName"></span>
+        <input id="roomNameInput" maxlength="30" autocomplete="off">
+      </label>
+    </div>
+    <label class="field col"><span data-t="roomPaste"></span>
+      <textarea id="roomPaste" rows="3"></textarea>
+    </label>
+    <div class="actions left">
+      <button class="btn" id="roomAddBtn" data-t="roomAdd"></button>
+      <button class="btn" id="roomMineBtn" data-t="roomAddMine"></button>
+    </div>
+    <p class="msg" id="roomMsg" role="status"></p>
+    <ul class="members" id="memberList"></ul>
+    <div class="stage"><canvas id="roomCanvas"></canvas></div>
+    <div class="actions">
+      <button class="btn primary" id="roomSaveBtn" data-t="save"></button>
+    </div>
+  </section>
+</main>
+
+<footer class="bottom">
+  <p class="pnc" aria-label="PROJECT.NEURAL.CLOUD">PROJECT.NEURAL.CL<button id="eggO" class="egg" type="button" aria-label="O">O</button>UD</p>
+</footer>
+
+<!-- 캐릭터 고르기 창 -->
+<div class="modal" id="picker" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+    <div class="sheet-head">
+      <h2 id="pickTitle"></h2>
+      <button class="icon" id="pickClose" aria-label="close">✕</button>
+    </div>
+    <input id="searchInput" type="search" autocomplete="off">
+    <div class="grid" id="pickGrid"></div>
+    <div class="sheet-foot" id="formsBar" hidden>
+      <p data-t="alsoForms"></p>
+      <div class="chips" id="formChips"></div>
+      <button class="btn primary" id="formsDone" data-t="done"></button>
+    </div>
+    <div class="sheet-foot plain">
+      <button class="btn ghost" id="clearSlot" data-t="clear"></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
