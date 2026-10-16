@@ -11,8 +11,17 @@ const CLASSES = ["guard", "sniper", "warrior", "specialist", "medic"];
 const TABS = {
   company: { code: "c", slots: [...COMPANIES, "joker"] },
   class:   { code: "k", slots: CLASSES },
-  free:    { code: "f", slots: Array(8).fill("free") }
+  free:    { code: "f", slots: Array(8).fill("free") },
+  total:   { sections: ["company", "class", "free"] }
 };
+// 조커칸 히든픽 하트 (id, 이모지, 칸 색)
+const HEARTS = [
+  ["red", "❤️", "#d9434b"], ["pink", "🩷", "#e68aac"], ["orange", "🧡", "#e8843a"], ["yellow", "💛", "#e2bf3c"],
+  ["green", "💚", "#4fa865"], ["blue", "💙", "#3f7fd6"], ["lightblue", "🩵", "#7cc4e6"], ["purple", "💜", "#8a5bc9"],
+  ["brown", "🤎", "#8a5a3c"], ["black", "🖤", "#24252a"], ["grey", "🩶", "#8d9097"], ["white", "🤍", "#ecebe8"]
+].map(([id, e, c]) => ({ id: "h:" + id, e, c }));
+const heartOf = id => HEARTS.find(h => h.id === id);
+const validPick = id => !!(byImg[id] || heartOf(id));
 const TAB_BY_CODE = { c: "company", k: "class", f: "free" };
 const CREDIT = { ko: "제작", en: "Made by", zh: "制作", ja: "制作" };
 const FONT = '"PNC Pixel", "PNC Pixel Emoji", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
@@ -102,7 +111,19 @@ function drawCell(ctx, cx, cy, w, h, pointy, imgId, opts = {}) {
   const t = th();
   ctx.save();
   hexPath(ctx, cx, cy, w, h, pointy);
-  if (imgId) {
+  const heart = imgId && heartOf(imgId);
+  if (heart) {
+    ctx.fillStyle = heart.c; ctx.fill();
+    ctx.save(); ctx.clip();
+    const g = ctx.createLinearGradient(cx, cy - h / 2, cx, cy + h / 2);
+    g.addColorStop(0, "rgba(255,255,255,.18)"); g.addColorStop(1, "rgba(0,0,0,.22)");
+    ctx.fillStyle = g; ctx.fillRect(cx - w / 2, cy - h / 2, w, h);
+    ctx.restore();
+    const px = Math.max(12, Math.round(h * 0.42 / 12) * 12);
+    ctx.font = `${px}px "PNC Pixel Emoji", ${FONT}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(heart.e, cx, cy + 2);
+  } else if (imgId) {
     ctx.fillStyle = t.panel; ctx.fill();
     ctx.save(); ctx.clip();
     const im = portrait(imgId);
@@ -203,7 +224,7 @@ function drawLogo(ctx, key, cx, top, box) {
 /* =====================================================================
    1인 취향표 (가로 육각형, 지그재그)
    ===================================================================== */
-const L1 = { pad: 56, W: 220, logo: 76, logoGap: 16, nameGap: 18, nameLine: 28, footer: 64, titleH: 120 };
+const L1 = { pad: 56, W: 220, logo: 76, logoGap: 16, nameGap: 18, nameLine: 28, footer: 64, titleH: 120, secGap: 40, secLabel: 44 };
 L1.H = L1.W * R3 / 2;
 L1.pitch = L1.W * 0.75;          // 변끼리 딱 붙는 간격 (편성창 느낌)
 
@@ -219,53 +240,37 @@ function alterSpots(cx, cy, low, count) {
   }
   return out;
 }
-function layoutSingle(tab) {
+// 시트 한 덩어리(기업별/직군별/8인) 배치. top = 이 덩어리가 시작하는 높이
+function layoutSection(tab, top) {
   const n = TABS[tab].slots.length, picks = S.picks[tab];
-  let up = 0, down = 0, right = (n - 1) * L1.pitch;
+  let up = 0, down = 0;
   picks.forEach((pk, i) => {
     const k = pk && pk.extra ? pk.extra.length : 0;
     if (!k) return;
     if (i % 2) up = Math.max(up, k); else down = Math.max(down, k);
   });
   const headH = tab === "free" ? 0 : (tab === "class" ? 84 : L1.logo) + L1.logoGap;
-  const headTop = L1.pad + L1.titleH;
-  const stripTop = headTop + headH + (up ? (up - 0.5) * L1.H : 0);
+  const stripTop = top + headH + (up ? (up - 0.5) * L1.H : 0);
   const x0 = L1.pad + L1.W / 2;
   const cells = Array.from({ length: n }, (_, i) => ({
-    i, low: i % 2 === 1, cx: x0 + i * L1.pitch, cy: stripTop + L1.H / 2 + (i % 2 ? L1.H / 2 : 0)
+    tab, i, low: i % 2 === 1, cx: x0 + i * L1.pitch, cy: stripTop + L1.H / 2 + (i % 2 ? L1.H / 2 : 0)
   }));
   const stripBottom = stripTop + L1.H * 1.5 + (down ? (down - 0.5) * L1.H : 0);
   const namesTop = stripBottom + L1.nameGap;
   const bottom = S.names ? namesTop + L1.nameLine * 2 + 8 : stripBottom + 12;
-  const width = Math.max(L1.pad * 2 + right + L1.W, 760);
-  return { tab, width, height: bottom + L1.footer + L1.pad / 2, cells, headTop, namesTop, x0 };
+  return { tab, headTop: top, cells, namesTop, bottom, right: L1.pad * 2 + (n - 1) * L1.pitch + L1.W };
 }
-
-function badgeSpots(cx, cy, w, h, dirDown, pointy, count, bw) {
-  // 원본 칸 모서리(오른쪽 위 / 아래쪽 줄은 오른쪽 아래)에서 바깥으로 빼서 선으로 연결
-  let mx, my, nx, ny;
-  if (pointy) { mx = cx + w / 4; my = cy - 3 * h / 8; nx = 0.5; ny = -R3 / 2; }
-  else { mx = cx + 3 * w / 8; my = cy + (dirDown ? h / 4 : -h / 4); nx = R3 / 2; ny = dirDown ? 0.5 : -0.5; }
-  const out = [];
-  for (let k = 0; k < count; k++) {
-    const d = bw * (0.62 + k * 0.98);
-    out.push({ mx, my, x: mx + nx * d, y: my + ny * d });
-  }
-  return out;
-}
-function drawBadges(ctx, pick, cx, cy, w, h, dirDown, pointy) {
-  const extra = (pick && pick.extra) || [];
-  if (!extra.length) return;
-  const bw = w * (pointy ? 0.44 : 0.4), bh = pointy ? bw * 2 / R3 : bw * R3 / 2;
-  const spots = badgeSpots(cx, cy, w, h, dirDown, pointy, extra.length, bw);
-  ctx.save();
-  ctx.strokeStyle = ACCENT; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(spots[0].mx, spots[0].my);
-  spots.forEach(s => ctx.lineTo(s.x, s.y)); ctx.stroke();
-  ctx.fillStyle = ACCENT;
-  ctx.beginPath(); ctx.arc(spots[0].mx, spots[0].my, 3.5, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-  extra.forEach((id, k) => drawCell(ctx, spots[k].x, spots[k].y, bw, bh, pointy, id, { small: true }));
+function layoutSingle(tab) {
+  const sections = [];
+  let y = L1.pad + L1.titleH;
+  const tabs = tab === "total" ? TABS.total.sections : [tab];
+  tabs.forEach((tb, k) => {
+    if (tab === "total") { if (k) y += L1.secGap; y += L1.secLabel; }
+    const sec = layoutSection(tb, y);
+    sections.push(sec); y = sec.bottom;
+  });
+  const width = Math.max(760, ...sections.map(s => s.right));
+  return { tab, width, height: y + L1.footer + L1.pad / 2, sections, cells: sections.flatMap(s => s.cells) };
 }
 
 function slotHeader(tab, i, pick) {
@@ -278,46 +283,50 @@ function slotHeader(tab, i, pick) {
   if (tab === "class") return { logo: CLASSES[i], label: T().classes[CLASSES[i]] };
   return null;
 }
-
-function drawSingle(ctx, L, hover) {
-  const t = th(), tab = L.tab, picks = S.picks[tab];
-  drawBackground(ctx, L.width, L.height);
-  // 제목
+function drawHeader(ctx, W, subtitle) {
+  const t = th();
   ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
   setFont(ctx, 36, true); ctx.fillStyle = t.text;
-  ctx.fillText(T().chartHead, L.width / 2, L1.pad + 40);
+  ctx.fillText(T().chartHead, W / 2, L1.pad + 40);
   setFont(ctx, 24, false); ctx.fillStyle = t.sub;
-  ctx.fillText(T().chartTitle[tab], L.width / 2, L1.pad + 80);
+  ctx.fillText(subtitle, W / 2, L1.pad + 80);
   if (S.nick.trim()) {
     setFont(ctx, 24, true); ctx.textAlign = "right"; ctx.fillStyle = t.text;
     const nick = fitText(ctx, S.nick.trim(), 320);
-    const nx = L.width - L1.pad, ny = L1.pad + 80;
+    const nx = W - L1.pad, ny = L1.pad + 80;
     ctx.fillText(nick, nx, ny);
     const nw = ctx.measureText(nick).width;
     ctx.fillStyle = ACCENT; ctx.fillRect(nx - nw - 8, ny + 10, nw + 16, 3);
   }
+}
+function drawSection(ctx, sec, hover, W, labeled) {
+  const t = th(), tab = sec.tab, picks = S.picks[tab];
+  if (labeled) {
+    setFont(ctx, 24, true); ctx.textAlign = "left"; ctx.fillStyle = ACCENT;
+    ctx.fillText(T().chartTitle[tab], L1.pad, sec.headTop - 16);
+    const lw = ctx.measureText(T().chartTitle[tab]).width;
+    ctx.strokeStyle = t.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(L1.pad + lw + 16, sec.headTop - 24); ctx.lineTo(W - L1.pad, sec.headTop - 24); ctx.stroke();
+  }
   // 맨 위 로고 줄 (고정)
-  L.cells.forEach(cell => {
+  sec.cells.forEach(cell => {
     const head = slotHeader(tab, cell.i, picks[cell.i]);
     if (!head) return;
     if (head.label) {
-      drawLogo(ctx, head.logo, cell.cx, L.headTop, 44);
+      drawLogo(ctx, head.logo, cell.cx, sec.headTop, 44);
       setFont(ctx, 24, false); ctx.textAlign = "center"; ctx.fillStyle = t.sub;
-      ctx.fillText(head.label, cell.cx, L.headTop + 76);
+      ctx.fillText(head.label, cell.cx, sec.headTop + 76);
     } else if (head.logo) {
-      drawLogo(ctx, head.logo, cell.cx, L.headTop, L1.logo);
+      drawLogo(ctx, head.logo, cell.cx, sec.headTop, L1.logo);
     } else if (head.text) {
       setFont(ctx, 24, true); ctx.textAlign = "center"; ctx.fillStyle = ACCENT;
-      ctx.fillText(head.text, cell.cx, L.headTop + L1.logo / 2 + 10);
+      ctx.fillText(head.text, cell.cx, sec.headTop + L1.logo / 2 + 10);
     }
   });
   // 칸 (붙어 있는 지그재그)
-  L.cells.forEach(cell => {
-    const pick = picks[cell.i];
-    drawCell(ctx, cell.cx, cell.cy, L1.W, L1.H, false, pick && pick.img);
-  });
-  // 이격 (같은 크기, 변에 붙임) + 이어진 변 표시
-  L.cells.forEach(cell => {
+  sec.cells.forEach(cell => drawCell(ctx, cell.cx, cell.cy, L1.W, L1.H, false, picks[cell.i] && picks[cell.i].img));
+  // 이격 (같은 크기, 골짜기에) + 주황 테두리로 묶기
+  sec.cells.forEach(cell => {
     const pick = picks[cell.i];
     if (!pick || !pick.extra || !pick.extra.length) return;
     const spots = alterSpots(cell.cx, cell.cy, cell.low, pick.extra.length);
@@ -336,21 +345,26 @@ function drawSingle(ctx, L, hover) {
     });
     ctx.restore();
   });
-  if (hover >= 0) {
-    const c = L.cells[hover];
+  if (hover && hover.tab === tab) {
+    const c = sec.cells[hover.i];
     hexPath(ctx, c.cx, c.cy, L1.W, L1.H, false);
     ctx.save(); ctx.strokeStyle = ACCENT; ctx.lineWidth = 4; ctx.stroke(); ctx.restore();
   }
   // 이름 (칸이 끝난 아래에 한 줄)
   if (S.names) {
     setFont(ctx, 24, false); ctx.textAlign = "center"; ctx.fillStyle = t.text;
-    L.cells.forEach(cell => {
+    sec.cells.forEach(cell => {
       const pick = picks[cell.i];
-      if (!pick) return;
+      if (!pick || !byImg[pick.img]) return;
       wrapName(ctx, charName(byImg[pick.img]), L1.pitch - 6)
-        .forEach((line, k) => ctx.fillText(line, cell.cx, L.namesTop + 22 + k * L1.nameLine));
+        .forEach((line, k) => ctx.fillText(line, cell.cx, sec.namesTop + 22 + k * L1.nameLine));
     });
   }
+}
+function drawSingle(ctx, L, hover) {
+  drawBackground(ctx, L.width, L.height);
+  drawHeader(ctx, L.width, T().chartTitle[L.tab]);
+  L.sections.forEach(sec => drawSection(ctx, sec, hover, L.width, L.tab === "total"));
   drawFooter(ctx, L.width, L.height - L1.pad / 2 - 4, L1.pad);
 }
 
@@ -452,7 +466,7 @@ function readCode(code) {
       const v = o.p[i];
       if (!v) return null;
       const [im, ex] = Array.isArray(v) ? v : [v, []];
-      if (!byImg[im]) return null;
+      if (!validPick(im)) return null;
       return { img: im, extra: (ex || []).filter(x => byImg[x]).slice(0, 2) };
     });
     return { tab, n: String(o.n || "").slice(0, 20), p, code };
@@ -464,7 +478,7 @@ function readCode(code) {
    ===================================================================== */
 const $ = id => document.getElementById(id);
 const singleCanvas = $("singleCanvas"), roomCanvas = $("roomCanvas");
-let singleL = null, hoverIdx = -1;
+let singleL = null, hoverIdx = null;
 
 function fitCanvas(canvas, L) {
   const cssW = canvas.parentElement.clientWidth || L.width;
@@ -507,7 +521,7 @@ function ensureFonts() {
   return Promise.all([
     document.fonts.load(`400 24px "PNC Pixel"`, txt),
     document.fonts.load(`700 24px "PNC Pixel"`, txt),
-    document.fonts.load(`24px "PNC Pixel Emoji"`, S.nick + S.room.name + roomMembers().map(m => m.n).join(""))
+    document.fonts.load(`24px "PNC Pixel Emoji"`, HEARTS.map(h => h.e).join("") + S.nick + S.room.name + roomMembers().map(m => m.n).join(""))
   ]).catch(() => {});
 }
 const refresh = () => ensureFonts().then(queueRender);
@@ -548,6 +562,7 @@ function applyTab() {
   $("singleView").hidden = S.tab === "room";
   $("roomView").hidden = S.tab !== "room";
   $("codeBox").hidden = true;
+  $("codeBtn").hidden = S.tab === "total";
   if (S.tab === "room") renderMembers();
 }
 
@@ -562,7 +577,7 @@ function toast(msg) {
 /* =====================================================================
    캐릭터 고르기 창
    ===================================================================== */
-let pickSlot = -1, pending = null;
+let pickTab = "company", pickSlot = -1, pending = null;
 const kanaToHira = s => s.replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
 const norm = s => kanaToHira(String(s).toLowerCase()).replace(/[\s·・.\-_:;()（）]/g, "");
 const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
@@ -610,11 +625,23 @@ function cardEl(c, selected) {
 }
 function renderGrid() {
   const grid = $("pickGrid"), q = $("searchInput").value.trim();
-  const cur = S.picks[S.tab][pickSlot];
-  const list = candidates(S.tab, pickSlot).filter(c => matches(c, q));
+  const cur = S.picks[pickTab][pickSlot];
+  const list = candidates(pickTab, pickSlot).filter(c => matches(c, q));
   grid.replaceChildren();
+  if (TABS[pickTab].slots[pickSlot] === "joker" && !q) {
+    const h = document.createElement("h3"); h.textContent = T().hiddenPick; grid.append(h);
+    const row = document.createElement("div"); row.className = "hearts";
+    HEARTS.forEach(ht => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "heart" + (cur && cur.img === ht.id ? " sel" : "");
+      b.style.setProperty("--hc", ht.c); b.textContent = ht.e; b.title = ht.id.slice(2);
+      b.addEventListener("click", () => commit({ img: ht.id, extra: [] }));
+      row.append(b);
+    });
+    grid.append(row);
+  }
   if (!list.length) { const p = document.createElement("p"); p.className = "empty-msg"; p.textContent = T().noResult; grid.append(p); return; }
-  const groupBy = S.tab === "class" ? null : (TABS[S.tab].slots[pickSlot] === "joker" || S.tab === "free");
+  const groupBy = pickTab === "class" ? null : (TABS[pickTab].slots[pickSlot] === "joker" || pickTab === "free");
   const groups = groupBy ? [...COMPANIES, "collab"].map(k => [k, list.filter(c => c.company === k)]).filter(g => g[1].length) : [[null, list]];
   groups.forEach(([k, cs]) => {
     if (k) {
@@ -631,23 +658,29 @@ function renderGrid() {
     grid.append(wrap);
   });
 }
-function openPicker(i) {
-  pickSlot = i; pending = null;
+function openPicker(tab, i) {
+  pickTab = tab; pickSlot = i; pending = null;
   $("searchInput").value = "";
   $("formsBar").hidden = true;
-  $("clearSlot").parentElement.hidden = !S.picks[S.tab][i];
+  $("clearSlot").parentElement.hidden = !S.picks[tab][i];
   renderGrid();
   $("picker").hidden = false;
   setTimeout(() => $("searchInput").focus({ preventScroll: true }), 30);
 }
 function closePicker() { $("picker").hidden = true; pickSlot = -1; pending = null; }
 function commit(pick) {
-  S.picks[S.tab][pickSlot] = pick;
+  S.picks[pickTab][pickSlot] = pick;
+  // 종합 탭: 기업 칸에서 고르면 그 직군 칸이 비어 있을 때만 한 번 같이 채움 (조커·하트 제외)
+  if (S.tab === "total" && pickTab === "company" && pickSlot < 7 && pick) {
+    const c = byImg[pick.img];
+    const ci = c ? CLASSES.indexOf(c.cls) : -1;
+    if (ci >= 0 && c.company !== "collab" && !S.picks.class[ci]) S.picks.class[ci] = { img: pick.img, extra: [] };
+  }
   persist(); closePicker(); refresh();
 }
 function choose(c) {
   const others = familyOthers(c);
-  const old = S.picks[S.tab][pickSlot];
+  const old = S.picks[pickTab][pickSlot];
   if (!others.length) { commit({ img: imgOf(c), extra: [] }); return; }
   const keep = old && byImg[old.img] && byImg[old.img].family === c.family ? old.extra.filter(x => others.some(o => o.id === x)) : [];
   pending = { img: imgOf(c), extra: keep };
@@ -714,7 +747,7 @@ async function savePNG(kind) {
   } else {
     L = layoutSingle(S.tab);
     c.width = Math.round(L.width * EXPORT); c.height = Math.round(L.height * EXPORT);
-    ctx.scale(EXPORT, EXPORT); drawSingle(ctx, L, -1);
+    ctx.scale(EXPORT, EXPORT); drawSingle(ctx, L, null);
     name = `pnc_${S.tab}_${S.nick.trim() || "pick"}`;
   }
   c.toBlob(blob => {
@@ -736,18 +769,19 @@ function canvasPoint(e) {
   return { x: (e.clientX - r.left) / r.width * singleL.width, y: (e.clientY - r.top) / r.height * singleL.height };
 }
 function cellAt(e) {
-  if (!singleL) return -1;
+  if (!singleL) return null;
   const p = canvasPoint(e);
   const c = singleL.cells.find(c => hitHex(p.x, p.y, c.cx, c.cy, L1.W, L1.H, false));
-  return c ? c.i : -1;
+  return c ? { tab: c.tab, i: c.i } : null;
 }
-singleCanvas.addEventListener("click", e => { const i = cellAt(e); if (i >= 0) openPicker(i); });
+const sameCell = (a, b) => (a && b) ? a.tab === b.tab && a.i === b.i : a === b;
+singleCanvas.addEventListener("click", e => { const c = cellAt(e); if (c) openPicker(c.tab, c.i); });
 singleCanvas.addEventListener("mousemove", e => {
-  const i = cellAt(e);
-  singleCanvas.style.cursor = i >= 0 ? "pointer" : "default";
-  if (i !== hoverIdx) { hoverIdx = i; queueRender(); }
+  const c = cellAt(e);
+  singleCanvas.style.cursor = c ? "pointer" : "default";
+  if (!sameCell(c, hoverIdx)) { hoverIdx = c; queueRender(); }
 });
-singleCanvas.addEventListener("mouseleave", () => { if (hoverIdx !== -1) { hoverIdx = -1; queueRender(); } });
+singleCanvas.addEventListener("mouseleave", () => { if (hoverIdx) { hoverIdx = null; queueRender(); } });
 
 document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => {
   S.tab = b.dataset.tab; persist(); applyTab(); refresh();
@@ -773,7 +807,8 @@ $("copyBtn").addEventListener("click", () => {
 let resetArmed = 0;
 $("resetBtn").addEventListener("click", () => {
   if (Date.now() - resetArmed < 3000) {
-    S.picks[S.tab] = blankPicks()[S.tab]; persist(); resetArmed = 0; $("codeBox").hidden = true; refresh();
+    if (S.tab === "total") S.picks = blankPicks(); else S.picks[S.tab] = blankPicks()[S.tab];
+    persist(); resetArmed = 0; $("codeBox").hidden = true; refresh();
   } else { resetArmed = Date.now(); toast(T().resetConfirm); }
 });
 $("roomAddBtn").addEventListener("click", () => { addCodes($("roomPaste").value); $("roomPaste").value = ""; });
@@ -814,5 +849,5 @@ $("nickInput").value = S.nick;
 applyTexts(); applyTheme(); applyTab(); refresh();
 
 // 확인용 (개발자 도구에서 사용)
-window.PNC_DEBUG = { state: () => S, makeCode, readCode, render: queueRender };
+window.PNC_DEBUG = { state: () => S, layout: () => singleL, makeCode, readCode, render: queueRender };
 })();
