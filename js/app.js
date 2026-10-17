@@ -527,7 +527,51 @@ function b64dec(s) {
 }
 const packPicks = arr => arr.map(pk => !pk ? 0 : (pk.extra && pk.extra.length ? [pk.img, pk.extra] : pk.img));
 // 공유 코드 하나에 기업별 + 직군별 + 8인 + 하트 전부 (모아보기에서 조합을 골라 봄)
+/* ---------- 짧은 코드 (N1.) ----------
+   캐릭터는 data.js 순서 번호, 스킨은 그 캐릭터 안의 순서 번호로 비트에 꾹꾹 담아요.
+   ※ 새 캐릭터는 data.js 맨 끝에, 새 스킨은 그 캐릭터 variants 맨 끝에 추가해야 예전 코드가 안 깨져요. */
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const charIndex = {}; CHARS.forEach((c, i) => { charIndex[c.id] = i; });
+function packShort(groups, nick, heart) {
+  const bits = [];
+  const put = (v, n) => { for (let i = n - 1; i >= 0; i--) bits.push((v >> i) & 1); };
+  const hi = heart ? HEARTS.findIndex(h => h.id === heart) + 1 : 0;
+  put(hi, 4);
+  groups.forEach(arr => arr.forEach(pk => {
+    if (!pk || !byImg[pk.img]) { put(0, 1); return; }
+    const c = byImg[pk.img];
+    put(1, 1); put(charIndex[c.id], 7);
+    put(c.variants ? Math.max(0, c.variants.indexOf(pk.img)) : 0, 4);
+    const ex = (pk.extra || []).filter(x => byImg[x]).slice(0, 2);
+    put(ex.length, 2); ex.forEach(x => put(charIndex[byImg[x].id], 7));
+  }));
+  while (bits.length % 6) bits.push(0);
+  let out = "";
+  for (let i = 0; i < bits.length; i += 6) out += B64[parseInt(bits.slice(i, i + 6).join(""), 2)];
+  return "N1." + out + (nick ? "." + b64enc(nick) : "");
+}
+function unpackShort(code) {
+  const [, body, nickPart] = code.split(".");
+  const bits = [];
+  for (const ch of body) { const v = B64.indexOf(ch); if (v < 0) throw 0; for (let i = 5; i >= 0; i--) bits.push((v >> i) & 1); }
+  let p = 0;
+  const get = n => { let v = 0; for (let i = 0; i < n; i++) { if (p >= bits.length) throw 0; v = (v << 1) | bits[p++]; } return v; };
+  const hi = get(4);
+  const read = n => Array.from({ length: n }, () => {
+    if (!get(1)) return null;
+    const c = CHARS[get(7)], vi = get(4), exn = get(2);
+    const ex = Array.from({ length: exn }, () => (CHARS[get(7)] || {}).id).filter(Boolean);
+    if (!c) return null;
+    const img = c.variants ? (c.variants[vi] || imgOf(c)) : c.id;
+    return { img, extra: ex };
+  });
+  const company = read(8), cls = read(5), free = read(8);
+  return { n: nickPart ? b64dec(nickPart).slice(0, 20) : "", company, cls, free, heart: hi ? (HEARTS[hi - 1] || {}).id || null : null };
+}
 function makeCode() {
+  return packShort([S.picks.company, S.picks.class, S.picks.free], S.nick.trim(), S.heart);
+}
+function makeCodeLong() {
   const o = { n: S.nick.trim(), c: packPicks(S.picks.company), k: packPicks(S.picks.class), f: packPicks(S.picks.free) };
   if (S.heart) o.h = S.heart;
   return "PNC3." + b64enc(JSON.stringify(o));
@@ -544,6 +588,7 @@ function unpack(arr, n) {
 function readCode(code) {
   code = code.trim();
   try {
+    if (code.startsWith("N1.")) return { ...unpackShort(code), code };
     if (code.startsWith("PNC3.")) {
       const o = JSON.parse(b64dec(code.slice(5)));
       return { n: String(o.n || "").slice(0, 20), company: unpack(o.c, 8), cls: unpack(o.k, 5), free: unpack(o.f, 8), code, heart: heartOf(o.h) ? o.h : null };

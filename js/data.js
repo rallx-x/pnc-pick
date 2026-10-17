@@ -1,4 +1,5 @@
-// 캐릭터 목록 — 엑셀에서 자동 생성. 새 캐릭터는 같은 모양으로 한 줄 추가하면 돼요.
+// 캐릭터 목록 — 엑셀에서 자동 생성.
+// ※ 공유 코드가 순서 번호를 써요: 새 캐릭터는 맨 끝에, 새 스킨은 그 캐릭터 variants 맨 끝에 추가하세요. (중간에 끼우거나 순서를 바꾸면 예전 코드가 틀어져요)
 window.PNC_CHARS = [
 {"id": "yanny", "ko": "야니", "en": "Yanny", "zh": "扬尼", "ja": "ヤニー", "company": "42lab", "cls": "guard", "aliases": [], "yomi": []},
 {"id": "mai", "ko": "마이", "en": "Mai", "zh": "迈迈", "ja": "マイ", "company": "42lab", "cls": "specialist", "aliases": [], "yomi": []},
