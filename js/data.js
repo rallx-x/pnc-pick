@@ -6,7 +6,7 @@ window.PNC_CHARS = [
 {"id": "mai", "ko": "마이", "en": "Mai", "zh": "迈迈", "ja": "マイ", "company": "42lab", "cls": "specialist", "aliases": [], "yomi": []},
 {"id": "max", "ko": "맥스", "en": "Max", "zh": "麦克斯", "ja": "マックス", "company": "42lab", "cls": "sniper", "aliases": [], "yomi": []},
 {"id": "persicaria", "ko": "페르시카", "en": "Persicaria", "zh": "帕斯卡", "ja": "ペルシカ", "company": "42lab", "cls": "medic", "aliases": ["펫시"], "yomi": [], "family": "persicaria", "variants": ["persicaria", "persicaria_2", "persicaria_3", "persicaria_4", "persicaria_5", "persicaria_6", "persicaria_7", "persicaria_8", "persicaria_9", "persicaria_0"]},
-{"id": "antonina", "ko": "안토니나", "en": "Antonina", "zh": "安冬妮娜", "ja": "アントニーナ", "company": "42lab", "cls": "specialist", "aliases": ["안나"], "yomi": []},
+{"id": "antonina", "ko": "안토니나", "en": "Antonina", "zh": "安冬妮娜", "ja": "アントニーナ", "company": "42lab", "cls": "specialist", "aliases": ["안나"], "yomi": [], "variants": ["antonina", "antonina_2", "antonina_3", "antonina_4", "antonina_5", "antonina_6", "antonina_7", "antonina_8"]},
 {"id": "sol", "ko": "솔", "en": "Sol", "zh": "苏尔", "ja": "ソル", "company": "42lab", "cls": "warrior", "aliases": ["소리"], "yomi": []},
 {"id": "fresnel", "ko": "프레넬", "en": "Fresnel", "zh": "菲涅尔", "ja": "フレネル", "company": "42lab", "cls": "sniper", "aliases": [], "yomi": []},
 {"id": "camellia", "ko": "수춘", "en": "Souchun", "zh": "薮春", "ja": "藪春", "company": "42lab", "cls": "guard", "aliases": ["64식", "64", "카멜리아"], "yomi": ["そうしゅん"]},

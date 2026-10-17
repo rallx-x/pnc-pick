@@ -45,6 +45,7 @@ window.PNC_CONFIG = {
     { words: ["카페", "cafe", "레조넌스", "resonance"],           chars: ["persicaria", "persicaria2"], message: "帕斯卡" },
     { words: ["쿠루나나"],                                         chars: ["nanaka"],                    message: "七花" },
     { words: ["백색죽음"],                                         chars: ["simo"],                      message: "席摩" },
-    { words: ["플카"],                                             chars: ["florence"],                  message: "芙洛伦" }
+    { words: ["플카"],                                             chars: ["florence"],                  message: "芙洛伦" },
+    { words: ["사일안나"],                                         chars: ["antonina"],                  message: "安冬妮娜" }
   ]
 };
