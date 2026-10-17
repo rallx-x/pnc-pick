@@ -22,13 +22,26 @@ window.PNC_CONFIG = {
   //  여제 해금 안내 문구 — 아직 미정. 정해지면 여기만 바꾸면 돼요.
   // ---------------------------------------------------------------
   unlockMessage: {
-    ko: "(해금 안내 문구 준비 중)",
-    en: "(unlock message TBD)",
-    zh: "(解锁提示待定)",
-    ja: "(解放メッセージ準備中)"
+    ko: "云图计划", en: "云图计划", zh: "云图计划", ja: "云图计划"
   },
+  // 복호화 연출이 끝날 때 윗줄에 남는 16진수 (云图计划 의 UTF-8)
+  unlockHex: "E4 BA 91 E5 9B BE E8 AE A1 E5 88 92",
 
-  // 스에요이 일러스트: 들어올 때마다 이 중 하나가 랜덤으로 나와요.
-  // 공유 코드가 없는 곳에서 쓰는 대표 일러스트는 representative.
-  sueyoi: { variants: ["sueyoi_a", "sueyoi_b", "sueyoi_c"], representative: "sueyoi_b" }
+  // 스에요이 일러스트: 지금은 늘 대표(b, 사복)만 나와요.
+  // random 을 true 로 바꾸면 들어올 때마다 a/b/c 중 랜덤이 돼요.
+  sueyoi: { variants: ["sueyoi_a", "sueyoi_b", "sueyoi_c"], representative: "sueyoi_b", random: false },   // 랜덤용 (d, e는 스에노아 전용)
+
+  // ---------------------------------------------------------------
+  //  스킨 해금 키워드 — 닉네임 칸에 words 중 하나를 치고 Enter 하면
+  //  chars 에 적힌 캐릭터의 스킨이 전부 열려요. (영어는 대소문자 상관없음)
+  //  message 는 해금 연출 마지막에 나오는 글자 (중국어 이름, 16진수는 자동)
+  //  스킨 파일 목록은 data.js 의 각 캐릭터 "variants" 에 들어가요.
+  // ---------------------------------------------------------------
+  triggers: [
+    { words: ["스에노아", "렘넌트", "Remnant"],                  chars: ["sueyoi"],                    message: "末宵" },
+    { words: ["카페", "cafe", "레조넌스", "resonance"],           chars: ["persicaria", "persicaria2"], message: "帕斯卡" },
+    { words: ["쿠루나나"],                                         chars: ["nanaka"],                    message: "七花" },
+    { words: ["백색죽음"],                                         chars: ["simo"],                      message: "席摩" },
+    { words: ["플카"],                                             chars: ["florence"],                  message: "芙洛伦" }
+  ]
 };

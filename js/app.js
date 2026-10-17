@@ -9,7 +9,7 @@ const CFG = window.PNC_CONFIG, I18N = window.PNC_I18N, CHARS = window.PNC_CHARS;
 const COMPANIES = ["42lab", "svarog", "ultilife", "uas", "cybermedia", "sanctifier", "entropics"];
 const CLASSES = ["guard", "sniper", "warrior", "specialist", "medic"];
 const TABS = {
-  company: { code: "c", slots: [...COMPANIES, "joker"] },
+  company: { code: "c", slots: [...COMPANIES, "joker"] },   // 8번째 = 조커픽 (모든 기업 + 콜라보)
   class:   { code: "k", slots: CLASSES },
   free:    { code: "f", slots: Array(8).fill("free") },
   total:   { sections: ["company", "class", "free"] }
@@ -21,7 +21,7 @@ const HEARTS = [
   ["brown", "🤎", "#8a5a3c"], ["black", "🖤", "#24252a"], ["grey", "🩶", "#8d9097"], ["white", "🤍", "#ecebe8"]
 ].map(([id, e, c]) => ({ id: "h:" + id, e, c }));
 const heartOf = id => HEARTS.find(h => h.id === id);
-const validPick = id => !!(byImg[id] || heartOf(id));
+const validPick = id => !!byImg[id];
 const TAB_BY_CODE = { c: "company", k: "class", f: "free" };
 const CREDIT = { ko: "제작", en: "Made by", zh: "制作", ja: "制作" };
 const FONT = '"PNC Pixel", "PNC Pixel Emoji", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
@@ -30,8 +30,9 @@ const FONT = '"PNC Pixel", "PNC Pixel Emoji", "Apple SD Gothic Neo", "Malgun Got
 const byId = {}, byImg = {};
 CHARS.forEach(c => { byId[c.id] = c; (c.variants || [c.id]).forEach(v => { byImg[v] = c; }); });
 const sueVariants = CFG.sueyoi.variants.filter(v => byImg[v]);
-const SUE_NOW = sueVariants[Math.floor(Math.random() * sueVariants.length)] || CFG.sueyoi.representative;
-const imgOf = c => (c.variants ? SUE_NOW : c.id);
+const SUE_NOW = CFG.sueyoi.random ? (sueVariants[Math.floor(Math.random() * sueVariants.length)] || CFG.sueyoi.representative) : CFG.sueyoi.representative;
+// 기본으로 보이는 일러스트 (스에요이는 config 대표, 다른 캐릭터는 원래 이미지)
+const imgOf = c => (!c.variants ? c.id : c.id === "sueyoi" ? SUE_NOW : c.variants.includes(c.id) ? c.id : c.variants[0]);
 
 /* ---------- 저장 상태 ---------- */
 const KEY = "pnc-pick-v1";
@@ -41,11 +42,15 @@ const guessLang = () => {
   return l.startsWith("ja") ? "ja" : l.startsWith("zh") ? "zh" : l.startsWith("ko") ? "ko" : "en";
 };
 let S = { lang: guessLang(), theme: CFG.defaultTheme, bg: "", names: true, tab: "company", nick: "",
-          picks: blankPicks(), room: { name: "", members: [] }, unlocked: false };
+          picks: blankPicks(), room: { name: "", members: [] }, unlocked: false, heart: null, skins: [], skinChars: [] };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY) || "null");
   if (saved) S = Object.assign(S, saved, { picks: Object.assign(blankPicks(), saved.picks || {}) });
 } catch (e) { /* 저장소를 못 쓰는 환경이면 그냥 넘어가요 */ }
+if (!Array.isArray(S.skins)) S.skins = [];
+if (!Array.isArray(S.skinChars)) S.skinChars = [];
+// 예전 방식으로 해금한 스에요이 → 캐릭터 단위 해금으로 옮기기
+if (S.sueUnlocked || S.skins.some(v => v.startsWith("sueyoi_"))) { S.skinChars = [...new Set([...S.skinChars, "sueyoi"])]; delete S.sueUnlocked; }
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const T = () => I18N[S.lang] || I18N.ko;
 const fmt = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k] ?? "");
@@ -58,6 +63,9 @@ const THEME = {
   white: { bg: "#e7e8ea", panel: "#f5f5f6", text: "#22252a", sub: "#5f636b", line: "#c9ccd1", empty: "#dcc6c6", emptyText: "#985657", frame: "#4a4e56", logo: "#30333a", bgAlpha: .18 }
 };
 const ACCENT = "#f08a24";
+// 히든 캐릭터(여제) 전용 테두리 — 일러스트 배경의 진한 분홍
+const HIDDEN_FRAME = "#d61d62";
+const isHiddenImg = id => !!(id && byImg[id] && byImg[id].hidden);
 const th = () => THEME[S.theme] || THEME.gray;
 
 /* ---------- 이미지 불러오기 ---------- */
@@ -119,10 +127,7 @@ function drawCell(ctx, cx, cy, w, h, pointy, imgId, opts = {}) {
     g.addColorStop(0, "rgba(255,255,255,.18)"); g.addColorStop(1, "rgba(0,0,0,.22)");
     ctx.fillStyle = g; ctx.fillRect(cx - w / 2, cy - h / 2, w, h);
     ctx.restore();
-    const px = Math.max(12, Math.round(h * 0.42 / 12) * 12);
-    ctx.font = `${px}px "PNC Pixel Emoji", ${FONT}`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(heart.e, cx, cy + 2);
+    drawHeartIcon(ctx, heart.e, cx, cy + 2, Math.max(12, Math.round(h * 0.42 / 12) * 12));
   } else if (imgId) {
     ctx.fillStyle = t.panel; ctx.fill();
     ctx.save(); ctx.clip();
@@ -143,9 +148,27 @@ function drawCell(ctx, cx, cy, w, h, pointy, imgId, opts = {}) {
   }
   hexPath(ctx, cx, cy, w, h, pointy);
   ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = opts.small ? 3 : 6;
-  ctx.lineWidth = opts.hover ? 4 : (opts.small ? 2 : 3);
-  ctx.strokeStyle = opts.hover ? ACCENT : t.frame;
+  const hidden = isHiddenImg(imgId);
+  ctx.lineWidth = opts.hover ? 4 : hidden ? 5 : (opts.small ? 2 : 3);
+  ctx.strokeStyle = opts.hover ? ACCENT : hidden ? HIDDEN_FRAME : t.frame;
   ctx.stroke();
+  ctx.restore();
+}
+function drawPlusCell(ctx, cx, cy) {
+  const t = th();
+  ctx.save();
+  hexPath(ctx, cx, cy, L1.W, L1.H, false);
+  ctx.setLineDash([10, 8]); ctx.lineWidth = 3; ctx.strokeStyle = t.sub; ctx.stroke();
+  ctx.setLineDash([]);
+  setFont(ctx, 60, true); ctx.fillStyle = t.sub; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("+", cx, cy + 2);
+  ctx.restore();
+}
+function drawHeartIcon(ctx, e, cx, cy, px) {
+  ctx.save();
+  ctx.font = `${px}px "PNC Pixel Emoji", ${FONT}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(e, cx, cy);
   ctx.restore();
 }
 function hitHex(px, py, cx, cy, w, h, pointy) {
@@ -184,14 +207,15 @@ function fitText(ctx, text, maxW) {
   return s + "…";
 }
 function drawPNC(ctx, x, y) {
+  // PROJECT.NEURAL.CLOUD — O는 전부 주황색
   setFont(ctx, 24, true);
   ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  const a = "PROJECT.NEURAL.CL", o = "O", b = "UD";
-  ctx.fillStyle = th().sub; ctx.fillText(a, x, y);
-  let w = ctx.measureText(a).width;
-  ctx.fillStyle = ACCENT; ctx.fillText(o, x + w, y);
-  w += ctx.measureText(o).width;
-  ctx.fillStyle = th().sub; ctx.fillText(b, x + w, y);
+  let cx = x;
+  for (const ch of "PROJECT.NEURAL.CLOUD") {
+    ctx.fillStyle = ch === "O" ? ACCENT : th().sub;
+    ctx.fillText(ch, cx, y);
+    cx += ctx.measureText(ch).width;
+  }
 }
 function drawFooter(ctx, W, y, pad) {
   drawPNC(ctx, pad, y);
@@ -213,12 +237,35 @@ function drawBackground(ctx, W, H) {
     }
   }
 }
+// 로고는 큰 원본(512px)을 한 번에 줄이면 가는 선이 깨져서, 반씩 여러 번 줄인 걸 따로 만들어 둬요
+const scaledCache = {};
+function scaledLogo(key, im, targetPx) {
+  const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
+  const tw = Math.max(1, Math.round(targetPx));
+  const ck = key + (th().logo || "") + "@" + tw;
+  if (scaledCache[ck]) return scaledCache[ck];
+  let src = im, w = iw, h = ih;
+  while (w / 2 >= tw) {
+    const c = document.createElement("canvas");
+    c.width = Math.round(w / 2); c.height = Math.round(h / 2);
+    const x = c.getContext("2d"); x.imageSmoothingQuality = "high";
+    x.drawImage(src, 0, 0, c.width, c.height);
+    src = c; w = c.width; h = c.height;
+  }
+  scaledCache[ck] = src;
+  return src;
+}
 function drawLogo(ctx, key, cx, top, box) {
   const im = logoImg(key);
   if (!ready(im)) return;
   const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
   const s = Math.min(box / iw, box / ih);
-  ctx.drawImage(im, cx - iw * s / 2, top + (box - ih * s) / 2, iw * s, ih * s);
+  const devScale = Math.abs(ctx.getTransform().a) || 1;
+  const src = scaledLogo(key, im, iw * s * devScale);
+  ctx.save();
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(src, cx - iw * s / 2, top + (box - ih * s) / 2, iw * s, ih * s);
+  ctx.restore();
 }
 
 /* =====================================================================
@@ -241,8 +288,9 @@ function alterSpots(cx, cy, low, count) {
   return out;
 }
 // 시트 한 덩어리(기업별/직군별/8인) 배치. top = 이 덩어리가 시작하는 높이
-function layoutSection(tab, top) {
-  const n = TABS[tab].slots.length, picks = S.picks[tab];
+function layoutSection(tab, top, forExport) {
+  const picks = S.picks[tab];
+  const n = TABS[tab].slots.length, plus = false;
   let up = 0, down = 0;
   picks.forEach((pk, i) => {
     const k = pk && pk.extra ? pk.extra.length : 0;
@@ -253,23 +301,25 @@ function layoutSection(tab, top) {
   const stripTop = top + headH + (up ? (up - 0.5) * L1.H : 0);
   const x0 = L1.pad + L1.W / 2;
   const cells = Array.from({ length: n }, (_, i) => ({
-    tab, i, low: i % 2 === 1, cx: x0 + i * L1.pitch, cy: stripTop + L1.H / 2 + (i % 2 ? L1.H / 2 : 0)
+    tab, i, low: i % 2 === 1, plus: plus && i === 7, cx: x0 + i * L1.pitch, cy: stripTop + L1.H / 2 + (i % 2 ? L1.H / 2 : 0)
   }));
   const stripBottom = stripTop + L1.H * 1.5 + (down ? (down - 0.5) * L1.H : 0);
   const namesTop = stripBottom + L1.nameGap;
   const bottom = S.names ? namesTop + L1.nameLine * 2 + 8 : stripBottom + 12;
   return { tab, headTop: top, cells, namesTop, bottom, right: L1.pad * 2 + (n - 1) * L1.pitch + L1.W };
 }
-function layoutSingle(tab) {
+function layoutSingle(tab, forExport) {
   const sections = [];
   let y = L1.pad + L1.titleH;
   const tabs = tab === "total" ? TABS.total.sections : [tab];
   tabs.forEach((tb, k) => {
     if (tab === "total") { if (k) y += L1.secGap; y += L1.secLabel; }
-    const sec = layoutSection(tb, y);
+    const sec = layoutSection(tb, y, forExport);
     sections.push(sec); y = sec.bottom;
   });
   const width = Math.max(760, ...sections.map(s => s.right));
+  // 칸이 적은 덩어리(직군별 5칸 등)는 가운데 정렬
+  sections.forEach(sec => { const dx = (width - sec.right) / 2; sec.cells.forEach(c => { c.cx += dx; }); });
   return { tab, width, height: y + L1.footer + L1.pad / 2, sections, cells: sections.flatMap(s => s.cells) };
 }
 
@@ -277,8 +327,8 @@ function slotHeader(tab, i, pick) {
   if (tab === "company") {
     if (i < 7) return { logo: COMPANIES[i] };
     const c = pick && byImg[pick.img];
-    if (!c) return { text: T().jokerShort };
-    return { logo: c.company === "collab" ? "alternatives" : c.company };
+    // 조커칸 위는 늘 하트 (기본 ❤️, 눌러서 색 변경)
+    return { heart: (S.heart && heartOf(S.heart)) ? heartOf(S.heart).e : "❤️" };
   }
   if (tab === "class") return { logo: CLASSES[i], label: T().classes[CLASSES[i]] };
   return null;
@@ -312,35 +362,43 @@ function drawSection(ctx, sec, hover, W, labeled) {
   sec.cells.forEach(cell => {
     const head = slotHeader(tab, cell.i, picks[cell.i]);
     if (!head) return;
+    if (cell.plus) { ctx.save(); ctx.globalAlpha = .35; drawLogo(ctx, head.logo, cell.cx, sec.headTop, L1.logo); ctx.restore(); return; }
     if (head.label) {
       drawLogo(ctx, head.logo, cell.cx, sec.headTop, 44);
       setFont(ctx, 24, false); ctx.textAlign = "center"; ctx.fillStyle = t.sub;
       ctx.fillText(head.label, cell.cx, sec.headTop + 76);
     } else if (head.logo) {
       drawLogo(ctx, head.logo, cell.cx, sec.headTop, L1.logo);
+    } else if (head.heart) {
+      drawHeartIcon(ctx, head.heart, cell.cx, sec.headTop + L1.logo / 2, 48);
     } else if (head.text) {
       setFont(ctx, 24, true); ctx.textAlign = "center"; ctx.fillStyle = ACCENT;
       ctx.fillText(head.text, cell.cx, sec.headTop + L1.logo / 2 + 10);
     }
   });
   // 칸 (붙어 있는 지그재그)
-  sec.cells.forEach(cell => drawCell(ctx, cell.cx, cell.cy, L1.W, L1.H, false, picks[cell.i] && picks[cell.i].img));
+  sec.cells.forEach(cell => {
+    if (cell.plus) { drawPlusCell(ctx, cell.cx, cell.cy); return; }
+    drawCell(ctx, cell.cx, cell.cy, L1.W, L1.H, false, picks[cell.i] && picks[cell.i].img);
+  });
   // 이격 (같은 크기, 골짜기에) + 주황 테두리로 묶기
   sec.cells.forEach(cell => {
     const pick = picks[cell.i];
     if (!pick || !pick.extra || !pick.extra.length) return;
     const spots = alterSpots(cell.cx, cell.cy, cell.low, pick.extra.length);
     spots.forEach((sp, k) => drawCell(ctx, sp.x, sp.y, L1.W, L1.H, false, pick.extra[k]));
+    // 홍옥의 여제가 묶음에 있으면 묶음 전체가 분홍 테두리
+    const gcol = [pick.img, ...pick.extra].some(isHiddenImg) ? HIDDEN_FRAME : ACCENT;
     [{ x: cell.cx, y: cell.cy }, ...spots].forEach(sp => {
       hexPath(ctx, sp.x, sp.y, L1.W, L1.H, false);
-      ctx.save(); ctx.strokeStyle = ACCENT; ctx.lineWidth = 4; ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.strokeStyle = gcol; ctx.lineWidth = 5; ctx.stroke(); ctx.restore();
     });
     ctx.save();
-    ctx.strokeStyle = ACCENT; ctx.lineWidth = 6; ctx.lineCap = "round";
+    ctx.strokeStyle = gcol; ctx.lineWidth = 6; ctx.lineCap = "round";
     spots.forEach(sp => {
       ctx.beginPath(); ctx.moveTo(sp.edge[0][0], sp.edge[0][1]); ctx.lineTo(sp.edge[1][0], sp.edge[1][1]); ctx.stroke();
       const mx = (sp.edge[0][0] + sp.edge[1][0]) / 2, my = (sp.edge[0][1] + sp.edge[1][1]) / 2;
-      ctx.fillStyle = ACCENT; ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = gcol; ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = t.bg; ctx.beginPath(); ctx.arc(mx, my, 3, 0, Math.PI * 2); ctx.fill();
     });
     ctx.restore();
@@ -371,64 +429,93 @@ function drawSingle(ctx, L, hover) {
 /* =====================================================================
    다인 모아보기 (세로 육각형, 사람마다 일렬)
    ===================================================================== */
-const L2 = { pad: 48, W: 96, gap: 12, label: 220, head: 70, badge: 8, footer: 64 };  // 다인은 이격 표시 없음
+const L2 = { pad: 48, W: 96, gap: 12, label: 220, head: 70, footer: 64, icon: 30 };  // 다인은 이격 표시 없음
 L2.H = L2.W * 2 / R3;
 L2.pitch = L2.W + L2.gap;
+// 조합: cc = 기업별 + 직군별, fc = 내맘대로 8인 + 직군별
+const COMBOS = { cc: "company", fc: "free" };
 
-function layoutRoom(tab, count) {
-  const n = TABS[tab].slots.length;
+// part: "all" = 한 장 / "top" = 위 줄(기업별·8인)만 / "class" = 직군별만
+function layoutRoom(combo, members, part = "all") {
+  const topTab = COMBOS[combo] || "company";
+  const showTop = part !== "class", showCls = part !== "top";
   const titleH = 104;
-  const rowH = L2.badge + L2.H + (S.names ? 26 : 0) + 12;
-  const top = L2.pad + titleH + L2.head;
-  const width = L2.pad * 2 + L2.label + (n - 1) * L2.pitch + L2.W + 24;
-  return { tab, n, width, top, rowH, titleH, height: top + Math.max(1, count) * rowH + L2.footer + L2.pad / 2 };
+  const rowH = L2.H + (S.names ? 26 : 0) + 10;
+  const blockH = (showTop ? rowH : 0) + (showCls ? rowH : 0) + 18;
+  const head = showTop ? L2.head : 8;
+  const top = L2.pad + titleH + head;
+  const span = 7 * L2.pitch + L2.W;
+  const width = L2.pad * 2 + L2.label + span + 24;
+  const x0 = L2.pad + L2.label;
+  // 직군 줄: 칸 왼쪽에 직군 아이콘, 위 줄 폭 안에서 가운데 정렬
+  const unit = L2.icon + 6 + L2.W, cgap = 18, ctotal = 5 * unit + 4 * cgap;
+  const cstart = x0 + (span - ctotal) / 2;
+  return {
+    combo, topTab, part, showTop, showCls, width, top, rowH, blockH, titleH, x0,
+    colX: i => x0 + L2.W / 2 + i * L2.pitch,
+    clsX: i => cstart + i * (unit + cgap) + L2.icon + 6 + L2.W / 2,
+    clsIconX: i => cstart + i * (unit + cgap) + L2.icon / 2,
+    height: top + Math.max(1, members.length) * blockH + L2.footer + L2.pad / 2
+  };
+}
+function drawRoomRow(ctx, picks, xs, cy) {
+  const t = th();
+  picks.forEach((pick, i) => {
+    drawCell(ctx, xs(i), cy, L2.W, L2.H, true, pick && pick.img);
+    if (S.names && pick && byImg[pick.img]) {
+      setFont(ctx, 12, false); ctx.textAlign = "center"; ctx.fillStyle = t.sub;
+      ctx.fillText(fitText(ctx, charName(byImg[pick.img]), L2.pitch - 4), xs(i), cy + L2.H / 2 + 18);
+    }
+  });
 }
 function drawRoom(ctx, L, members) {
-  const t = th(), tab = L.tab;
+  const t = th();
   drawBackground(ctx, L.width, L.height);
   ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
   setFont(ctx, 36, true); ctx.fillStyle = t.text;
   const title = S.room.name.trim() ? fmt(T().roomResult, { room: S.room.name.trim() }) : T().chartHead;
   ctx.fillText(fitText(ctx, title, L.width - L2.pad * 2), L.width / 2, L2.pad + 40);
   setFont(ctx, 24, false); ctx.fillStyle = t.sub;
-  ctx.fillText(T().chartTitle[tab], L.width / 2, L2.pad + 78);
-  const colX = i => L2.pad + L2.label + L2.W / 2 + i * L2.pitch;
-  // 열 머리 (고정)
-  TABS[tab].slots.forEach((slot, i) => {
+  const sub = L.part === "top" ? T().chartTitle[L.topTab] : L.part === "class" ? T().chartTitle.class
+    : `${T().chartTitle[L.topTab]} + ${T().chartTitle.class}`;
+  ctx.fillText(sub, L.width / 2, L2.pad + 78);
+  // 열 머리 (위 줄 기준, 고정)
+  if (L.showTop) {
     const y = L2.pad + L.titleH;
-    if (tab === "company") {
-      if (i < 7) drawLogo(ctx, COMPANIES[i], colX(i), y, 56);
-      else { setFont(ctx, 24, true); ctx.fillStyle = ACCENT; ctx.textAlign = "center"; ctx.fillText(T().jokerShort, colX(i), y + 38); }
-    } else if (tab === "class") {
-      drawLogo(ctx, CLASSES[i], colX(i), y, 32);
-      setFont(ctx, 12, false); ctx.fillStyle = t.sub; ctx.textAlign = "center";
-      ctx.fillText(T().classes[CLASSES[i]], colX(i), y + 52);
-    } else {
-      setFont(ctx, 24, true); ctx.fillStyle = t.sub; ctx.textAlign = "center";
-      ctx.fillText(String(i + 1), colX(i), y + 38);
+    for (let i = 0; i < 8; i++) {
+      if (L.topTab === "company") {
+        if (i < 7) drawLogo(ctx, COMPANIES[i], L.colX(i), y, 56);
+        else drawHeartIcon(ctx, "⭐", L.colX(i), y + 28, 36);   // 조커픽 = 별
+      } else {
+        setFont(ctx, 24, true); ctx.fillStyle = t.sub; ctx.textAlign = "center";
+        ctx.fillText(String(i + 1), L.colX(i), y + 38);
+      }
     }
-  });
+  }
   ctx.strokeStyle = t.line; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(L2.pad, L.top - 6); ctx.lineTo(L.width - L2.pad, L.top - 6); ctx.stroke();
-  // 사람마다 한 줄
   if (!members.length) {
     setFont(ctx, 24, false); ctx.fillStyle = t.sub; ctx.textAlign = "center";
-    ctx.fillText(T().roomEmpty.split(".")[0].split("。")[0], L.width / 2, L.top + L.rowH / 2);
+    ctx.fillText(T().roomEmpty.split(".")[0].split("。")[0], L.width / 2, L.top + L.blockH / 2);
   }
   members.forEach((m, r) => {
-    const cy = L.top + r * L.rowH + L2.badge + L2.H / 2;
+    const by = L.top + r * L.blockH + 8;
+    // 닉네임: 블록 세로 가운데
+    const midY = by + (L.blockH - 18) / 2;
     setFont(ctx, 24, true); ctx.textAlign = "left"; ctx.fillStyle = r === 0 ? ACCENT : t.text;
-    ctx.fillText(fitText(ctx, m.n || T().nobody, L2.label - 24), L2.pad, cy + 8);
-    m.p.forEach((pick, i) => {
-      drawCell(ctx, colX(i), cy, L2.W, L2.H, true, pick && pick.img);
-      if (S.names && pick) {
-        setFont(ctx, 12, false); ctx.textAlign = "center"; ctx.fillStyle = t.sub;
-        ctx.fillText(fitText(ctx, charName(byImg[pick.img]), L2.pitch - 4), colX(i), cy + L2.H / 2 + 18);
-      }
-    });
+    const nm = fitText(ctx, m.n || T().nobody, L2.label - 60);
+    ctx.fillText(nm, L2.pad, midY + 8);
+    if (m.heart && heartOf(m.heart)) drawHeartIcon(ctx, heartOf(m.heart).e, L2.pad + ctx.measureText(nm).width + 22, midY, 24);
+    let y = by;
+    if (L.showTop) { drawRoomRow(ctx, m.a, L.colX, y + L2.H / 2); y += L.rowH; }
+    if (L.showCls) {
+      const cy = y + L2.H / 2;
+      CLASSES.forEach((k, i) => drawLogo(ctx, k, L.clsIconX(i), cy - L2.icon / 2, L2.icon));
+      drawRoomRow(ctx, m.b, L.clsX, cy);
+    }
     if (r < members.length - 1) {
       ctx.strokeStyle = t.line; ctx.lineWidth = 1;
-      const ly = L.top + (r + 1) * L.rowH - 4;
+      const ly = L.top + (r + 1) * L.blockH - 4;
       ctx.beginPath(); ctx.moveTo(L2.pad, ly); ctx.lineTo(L.width - L2.pad, ly); ctx.stroke();
     }
   });
@@ -436,7 +523,7 @@ function drawRoom(ctx, L, members) {
 }
 
 /* =====================================================================
-   공유 코드
+   공유 코드 — 종합 탭에서만, 조합 2가지 (기업별+직군별 / 8인+직군별)
    ===================================================================== */
 function b64enc(str) {
   const bytes = new TextEncoder().encode(str);
@@ -449,28 +536,36 @@ function b64dec(s) {
   const bin = atob(s);
   return new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0)));
 }
+const packPicks = arr => arr.map(pk => !pk ? 0 : (pk.extra && pk.extra.length ? [pk.img, pk.extra] : pk.img));
+// 공유 코드 하나에 기업별 + 직군별 + 8인 + 하트 전부 (모아보기에서 조합을 골라 봄)
 function makeCode() {
-  const tab = S.tab;
-  const p = S.picks[tab].map(pk => !pk ? 0 : (pk.extra && pk.extra.length ? [pk.img, pk.extra] : pk.img));
-  return "PNC1." + b64enc(JSON.stringify({ t: TABS[tab].code, n: S.nick.trim(), p }));
+  const o = { n: S.nick.trim(), c: packPicks(S.picks.company), k: packPicks(S.picks.class), f: packPicks(S.picks.free) };
+  if (S.heart) o.h = S.heart;
+  return "PNC3." + b64enc(JSON.stringify(o));
+}
+function unpack(arr, n) {
+  return Array.from({ length: n }, (_, i) => {
+    const v = (arr || [])[i];
+    if (!v) return null;
+    const [im, ex] = Array.isArray(v) ? v : [v, []];
+    if (!validPick(im)) return null;
+    return { img: im, extra: (ex || []).filter(x => byImg[x]).slice(0, 2) };
+  });
 }
 function readCode(code) {
   code = code.trim();
-  if (!code.startsWith("PNC1.")) return null;
   try {
-    const o = JSON.parse(b64dec(code.slice(5)));
-    const tab = TAB_BY_CODE[o.t];
-    if (!tab || !Array.isArray(o.p)) return null;
-    const n = TABS[tab].slots.length;
-    const p = Array.from({ length: n }, (_, i) => {
-      const v = o.p[i];
-      if (!v) return null;
-      const [im, ex] = Array.isArray(v) ? v : [v, []];
-      if (!validPick(im)) return null;
-      return { img: im, extra: (ex || []).filter(x => byImg[x]).slice(0, 2) };
-    });
-    return { tab, n: String(o.n || "").slice(0, 20), p, code };
-  } catch (e) { return null; }
+    if (code.startsWith("PNC3.")) {
+      const o = JSON.parse(b64dec(code.slice(5)));
+      return { n: String(o.n || "").slice(0, 20), company: unpack(o.c, 8), cls: unpack(o.k, 5), free: unpack(o.f, 8), code, heart: heartOf(o.h) ? o.h : null };
+    }
+    if (code.startsWith("PNC2.")) {      // 이전 형식도 읽어줌
+      const o = JSON.parse(b64dec(code.slice(5)));
+      const top = unpack(o.a, 8), empty = Array(8).fill(null);
+      return { n: String(o.n || "").slice(0, 20), company: o.k === "cc" ? top : empty, cls: unpack(o.b, 5), free: o.k === "fc" ? top : empty, code, heart: heartOf(o.h) ? o.h : null };
+    }
+  } catch (e) { /* 깨진 코드 */ }
+  return null;
 }
 
 /* =====================================================================
@@ -481,7 +576,9 @@ const singleCanvas = $("singleCanvas"), roomCanvas = $("roomCanvas");
 let singleL = null, hoverIdx = null;
 
 function fitCanvas(canvas, L) {
-  const cssW = canvas.parentElement.clientWidth || L.width;
+  // 칸이 적은 탭(직군별 5칸 등)이 화면 가득 커지지 않게 최대 크기 제한
+  const cssW = Math.min(canvas.parentElement.clientWidth || L.width, L.width * 0.62);
+  canvas.style.width = cssW + "px"; canvas.style.margin = "0 auto";
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const R = Math.min(2, (cssW * dpr) / L.width);
   canvas.width = Math.round(L.width * R); canvas.height = Math.round(L.height * R);
@@ -490,14 +587,16 @@ function fitCanvas(canvas, L) {
   return ctx;
 }
 function roomMembers() {
-  return S.room.members.map(readCode).filter(Boolean);
+  const combo = roomCombo();
+  return S.room.members.map(readCode).filter(Boolean)
+    .map(m => ({ ...m, a: combo === "cc" ? m.company : m.free, b: m.cls }));
 }
+const roomCombo = () => (S.room.combo === "fc" ? "fc" : "cc");
 function render() {
   renderQueued = false;
   if (S.tab === "room") {
     const ms = roomMembers();
-    const tab = ms[0] ? ms[0].tab : "company";
-    const L = layoutRoom(tab, ms.length);
+    const L = layoutRoom(roomCombo(), ms);
     drawRoom(fitCanvas(roomCanvas, L), L, ms);
   } else {
     singleL = layoutSingle(S.tab);
@@ -512,7 +611,7 @@ function queueRender() {
 function textForFonts() {
   const parts = [T().chartHead, T().chartTitle.company, T().chartTitle.class, T().chartTitle.free, S.nick, S.room.name, CFG.copyright];
   Object.values(S.picks).flat().forEach(p => p && parts.push(charName(byImg[p.img])));
-  roomMembers().forEach(m => { parts.push(m.n); m.p.forEach(p => p && parts.push(charName(byImg[p.img]))); });
+  roomMembers().forEach(m => { parts.push(m.n); [...m.a, ...m.b].forEach(p => p && byImg[p.img] && parts.push(charName(byImg[p.img]))); });
   return parts.join("") + "PROJECT.NEURAL.CLOUD?JOKER0123456789";
 }
 function ensureFonts() {
@@ -531,7 +630,7 @@ function applyTexts() {
   const t = T();
   document.documentElement.lang = S.lang === "zh" ? "zh-CN" : S.lang;
   document.title = `${t.gameTitle} ${t.siteTitle}`;
-  $("gameTitle").textContent = t.gameTitle;
+  $("gameTitle").textContent = I18N.en.gameTitle;   // 위 작은 제목은 언어 상관없이 영어 표기 고정
   $("siteTitle").textContent = t.siteTitle;
   $("notice").replaceChildren(...t.notice.map(line => { const p = document.createElement("p"); p.textContent = line; return p; }));
   document.querySelectorAll("[data-t]").forEach(el => { if (t[el.dataset.t]) el.textContent = t[el.dataset.t]; });
@@ -562,7 +661,8 @@ function applyTab() {
   $("singleView").hidden = S.tab === "room";
   $("roomView").hidden = S.tab !== "room";
   $("codeBox").hidden = true;
-  $("codeBtn").hidden = S.tab === "total";
+  $("codeBtn").hidden = S.tab !== "total";   // 공유 코드는 종합 탭에서만
+  if (S.tab === "room" && typeof applyCombo === "function") applyCombo();
   if (S.tab === "room") renderMembers();
 }
 
@@ -614,7 +714,7 @@ function familyOthers(c) {
 }
 function cardEl(c, selected) {
   const b = document.createElement("button");
-  b.type = "button"; b.className = "card" + (selected ? " sel" : "");
+  b.type = "button"; b.className = "card" + (selected ? " sel" : "") + (c.hidden ? " hidden-char" : "");
   const hex = document.createElement("div"); hex.className = "hex";
   const im = document.createElement("img"); im.loading = "lazy"; im.alt = ""; im.src = `assets/portrait/${imgOf(c)}.png`;
   hex.append(im);
@@ -623,25 +723,34 @@ function cardEl(c, selected) {
   b.addEventListener("click", () => choose(c));
   return b;
 }
+function renderHearts() {
+  const grid = $("pickGrid");
+  const row = document.createElement("div"); row.className = "hearts";
+  HEARTS.forEach(ht => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "heart" + (S.heart === ht.id ? " sel" : "");
+    b.style.setProperty("--hc", ht.c); b.textContent = ht.e; b.title = ht.id.slice(2);
+    b.addEventListener("click", () => { S.heart = ht.id; persist(); closePicker(); refresh(); });
+    row.append(b);
+  });
+  grid.replaceChildren(row);
+}
+function openHeartPicker() {
+  pickTab = "company"; pickSlot = "heart"; pending = null;
+  $("pickTitle").textContent = T().hiddenPick;
+  $("searchInput").hidden = true;
+  $("formsBar").hidden = true;
+  $("clearSlot").parentElement.hidden = !S.heart;
+  renderHearts();
+  $("picker").hidden = false;
+}
 function renderGrid() {
   const grid = $("pickGrid"), q = $("searchInput").value.trim();
   const cur = S.picks[pickTab][pickSlot];
   const list = candidates(pickTab, pickSlot).filter(c => matches(c, q));
   grid.replaceChildren();
-  if (TABS[pickTab].slots[pickSlot] === "joker" && !q) {
-    const h = document.createElement("h3"); h.textContent = T().hiddenPick; grid.append(h);
-    const row = document.createElement("div"); row.className = "hearts";
-    HEARTS.forEach(ht => {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "heart" + (cur && cur.img === ht.id ? " sel" : "");
-      b.style.setProperty("--hc", ht.c); b.textContent = ht.e; b.title = ht.id.slice(2);
-      b.addEventListener("click", () => commit({ img: ht.id, extra: [] }));
-      row.append(b);
-    });
-    grid.append(row);
-  }
   if (!list.length) { const p = document.createElement("p"); p.className = "empty-msg"; p.textContent = T().noResult; grid.append(p); return; }
-  const groupBy = pickTab === "class" ? null : (TABS[pickTab].slots[pickSlot] === "joker" || pickTab === "free");
+  const groupBy = pickTab === "free" || TABS[pickTab].slots[pickSlot] === "joker";
   const groups = groupBy ? [...COMPANIES, "collab"].map(k => [k, list.filter(c => c.company === k)]).filter(g => g[1].length) : [[null, list]];
   groups.forEach(([k, cs]) => {
     if (k) {
@@ -660,6 +769,8 @@ function renderGrid() {
 }
 function openPicker(tab, i) {
   pickTab = tab; pickSlot = i; pending = null;
+  $("pickTitle").textContent = T().pickTitle;
+  $("searchInput").hidden = false;
   $("searchInput").value = "";
   $("formsBar").hidden = true;
   $("clearSlot").parentElement.hidden = !S.picks[tab][i];
@@ -678,26 +789,48 @@ function commit(pick) {
   }
   persist(); closePicker(); refresh();
 }
+// 홍옥의 여제는 집도가 함께 있을 때만 "다른 모습"으로 나타나요
+const EMPRESS_NEEDS = { persicaria3: "persicaria2" };
+// 이 캐릭터에서 지금 고를 수 있는 일러스트 (기본 + 해금한 스킨), data.js 순서대로
+const skinOptions = c => !c.variants ? [] : S.skinChars.includes(c.id) ? c.variants : c.variants.filter(v => v === imgOf(c) || S.skins.includes(v));
 function choose(c) {
+  const skins = skinOptions(c);
   const others = familyOthers(c);
   const old = S.picks[pickTab][pickSlot];
-  if (!others.length) { commit({ img: imgOf(c), extra: [] }); return; }
-  const keep = old && byImg[old.img] && byImg[old.img].family === c.family ? old.extra.filter(x => others.some(o => o.id === x)) : [];
-  pending = { img: imgOf(c), extra: keep };
-  const chips = $("formChips"); chips.replaceChildren();
-  others.forEach(o => {
+  if (skins.length <= 1 && !others.length) { commit({ img: imgOf(c), extra: [] }); return; }
+  const keep = old && byImg[old.img] && byImg[old.img].family && byImg[old.img].family === c.family ? old.extra.filter(x => others.some(o => o.id === x)) : [];
+  pending = { img: old && byImg[old.img] === c ? old.img : imgOf(c), extra: keep };
+  const has = id => (byImg[pending.img] && byImg[pending.img].id === id) || pending.extra.includes(id);
+  const chipEl = (src, label, on, cls, click) => {
     const b = document.createElement("button");
-    b.type = "button"; b.className = "chip";
-    b.setAttribute("aria-pressed", String(pending.extra.includes(o.id)));
-    const im = document.createElement("img"); im.alt = ""; im.src = `assets/portrait/${o.id}.png`;
-    b.append(im, document.createTextNode(charName(o)));
-    b.addEventListener("click", () => {
+    b.type = "button"; b.className = "chip" + (cls ? " " + cls : "");
+    b.setAttribute("aria-pressed", String(on));
+    const im = document.createElement("img"); im.alt = ""; im.src = `assets/portrait/${src}.png`;
+    im.onerror = () => { b.remove(); };   // 아직 이미지가 없는 스킨은 안 보이게
+    b.append(im, document.createTextNode(label));
+    b.addEventListener("click", click);
+    return b;
+  };
+  const draw = () => {
+    // 스킨 줄
+    const showSkins = skins.length > 1;
+    $("skinLabel").hidden = $("skinChips").hidden = !showSkins;
+    if (showSkins) {
+      $("skinLabel").textContent = fmt(T().skinChoose, { name: charName(c) });
+      $("skinChips").replaceChildren(...skins.map(v => chipEl(v, T().skinNames[v] || I18N.ko.skinNames[v] || v, pending.img === v, "",
+        () => { pending.img = v; draw(); })));
+    }
+    // 다른 모습 줄 (조건이 빠지면 여제도 같이 빠짐)
+    pending.extra = pending.extra.filter(x => !EMPRESS_NEEDS[x] || has(EMPRESS_NEEDS[x]));
+    const vis = others.filter(o => !EMPRESS_NEEDS[o.id] || has(EMPRESS_NEEDS[o.id]));
+    $("formsLabel").hidden = $("formChips").hidden = !vis.length;
+    $("formChips").replaceChildren(...vis.map(o => chipEl(o.id, charName(o), pending.extra.includes(o.id), o.hidden ? "hidden-chip" : "", () => {
       const on = pending.extra.includes(o.id);
       pending.extra = on ? pending.extra.filter(x => x !== o.id) : [...pending.extra, o.id].slice(0, 2);
-      b.setAttribute("aria-pressed", String(!on));
-    });
-    chips.append(b);
-  });
+      draw();
+    })));
+  };
+  draw();
   document.querySelectorAll("#pickGrid .card").forEach(el => el.classList.toggle("sel", el.querySelector("span").textContent === charName(c)));
   $("formsBar").hidden = false;
 }
@@ -718,15 +851,13 @@ function renderMembers() {
 }
 function addCodes(text) {
   const codes = text.split(/\s+/).map(s => s.trim()).filter(Boolean);
-  let bad = false, mismatch = "";
+  let bad = false;
   codes.forEach(code => {
     const m = readCode(code);
     if (!m) { bad = true; return; }
-    const first = roomMembers()[0];
-    if (first && first.tab !== m.tab) { mismatch = first.tab; return; }
     S.room.members.push(m.code);
   });
-  $("roomMsg").textContent = mismatch ? fmt(T().roomTabMismatch, { tab: T().tabs[mismatch] }) : bad ? T().roomBadCode : "";
+  $("roomMsg").textContent = bad ? T().roomBadCode : "";
   persist(); renderMembers(); refresh();
 }
 
@@ -738,14 +869,20 @@ async function savePNG(kind) {
   const EXPORT = 1.5;
   const c = document.createElement("canvas"), ctx = c.getContext("2d");
   let L, name;
-  if (kind === "room") {
-    const ms = roomMembers(); const tab = ms[0] ? ms[0].tab : "company";
-    L = layoutRoom(tab, ms.length);
+  if (kind === "roomSplit") {          // 분류별 2장: 위 줄(기업별/8인) + 직군별
+    await savePNG("room:top");
+    setTimeout(() => savePNG("room:class"), 600);
+    return;
+  }
+  if (kind.startsWith("room")) {
+    const ms = roomMembers(); const combo = roomCombo();
+    const part = kind.split(":")[1] || "all";
+    L = layoutRoom(combo, ms, part);
     c.width = Math.round(L.width * EXPORT); c.height = Math.round(L.height * EXPORT);
     ctx.scale(EXPORT, EXPORT); drawRoom(ctx, L, ms);
-    name = `pnc_room_${S.room.name.trim() || tab}`;
+    name = `pnc_room_${S.room.name.trim() || combo}${part === "all" ? "" : "_" + (part === "top" ? COMBOS[combo] : "class")}`;
   } else {
-    L = layoutSingle(S.tab);
+    L = layoutSingle(S.tab, true);
     c.width = Math.round(L.width * EXPORT); c.height = Math.round(L.height * EXPORT);
     ctx.scale(EXPORT, EXPORT); drawSingle(ctx, L, null);
     name = `pnc_${S.tab}_${S.nick.trim() || "pick"}`;
@@ -772,14 +909,22 @@ function cellAt(e) {
   if (!singleL) return null;
   const p = canvasPoint(e);
   const c = singleL.cells.find(c => hitHex(p.x, p.y, c.cx, c.cy, L1.W, L1.H, false));
-  return c ? { tab: c.tab, i: c.i } : null;
+  if (c) return { tab: c.tab, i: c.i };
+  // 조커칸 위 JOKER 글씨(하트) 자리 → 히든픽 하트 고르기
+  const sec = singleL.sections.find(s => s.tab === "company");
+  if (sec) {
+    const j = sec.cells[7];
+    if (Math.abs(p.x - j.cx) < L1.W * 0.4 && p.y >= sec.headTop - 8 && p.y <= sec.headTop + L1.logo + 8) return { tab: "company", i: 7, head: true };
+  }
+  return null;
 }
 const sameCell = (a, b) => (a && b) ? a.tab === b.tab && a.i === b.i : a === b;
-singleCanvas.addEventListener("click", e => { const c = cellAt(e); if (c) openPicker(c.tab, c.i); });
+singleCanvas.addEventListener("click", e => { const c = cellAt(e); if (!c) return; if (c.head) openHeartPicker(); else openPicker(c.tab, c.i); });
 singleCanvas.addEventListener("mousemove", e => {
   const c = cellAt(e);
   singleCanvas.style.cursor = c ? "pointer" : "default";
-  if (!sameCell(c, hoverIdx)) { hoverIdx = c; queueRender(); }
+  const hc = c && c.head ? null : c;
+  if (!sameCell(hc, hoverIdx)) { hoverIdx = hc; queueRender(); }
 });
 singleCanvas.addEventListener("mouseleave", () => { if (hoverIdx) { hoverIdx = null; queueRender(); } });
 
@@ -795,9 +940,15 @@ $("roomNameInput").addEventListener("input", e => { S.room.name = e.target.value
 
 $("saveBtn").addEventListener("click", () => savePNG("single"));
 $("roomSaveBtn").addEventListener("click", () => savePNG("room"));
-$("codeBtn").addEventListener("click", () => {
-  $("codeOut").value = makeCode(); $("codeBox").hidden = false; $("codeOut").select();
-});
+$("roomSplitBtn").addEventListener("click", () => savePNG("roomSplit"));
+$("codeBtn").addEventListener("click", () => { $("codeOut").value = makeCode(); $("codeBox").hidden = false; $("codeOut").select(); });
+// 모아보기 조합 고르기
+const applyCombo = () => {
+  ["cc", "fc"].forEach(k => $("combo" + k.toUpperCase()).setAttribute("aria-pressed", String(roomCombo() === k)));
+};
+["cc", "fc"].forEach(k => $("combo" + k.toUpperCase()).addEventListener("click", () => {
+  S.room.combo = k; persist(); applyCombo(); refresh();
+}));
 $("copyBtn").addEventListener("click", () => {
   const ta = $("codeOut");
   const fallback = () => { ta.focus(); ta.select(); try { document.execCommand("copy") ? toast(T().copied) : toast(T().copyFail); } catch (e) { toast(T().copyFail); } };
@@ -808,24 +959,70 @@ let resetArmed = 0;
 $("resetBtn").addEventListener("click", () => {
   if (Date.now() - resetArmed < 3000) {
     if (S.tab === "total") S.picks = blankPicks(); else S.picks[S.tab] = blankPicks()[S.tab];
+    if (S.tab === "total" || S.tab === "company") S.heart = null;
     persist(); resetArmed = 0; $("codeBox").hidden = true; refresh();
   } else { resetArmed = Date.now(); toast(T().resetConfirm); }
 });
 $("roomAddBtn").addEventListener("click", () => { addCodes($("roomPaste").value); $("roomPaste").value = ""; });
 $("roomMineBtn").addEventListener("click", () => {
-  const prevTab = S.tab;
-  const first = roomMembers()[0];
-  S.tab = first ? first.tab : "company";
-  const code = makeCode(); S.tab = prevTab;
-  addCodes(code);
+  addCodes(makeCode());
 });
 
 $("pickClose").addEventListener("click", closePicker);
 $("picker").addEventListener("click", e => { if (e.target.id === "picker") closePicker(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("picker").hidden) closePicker(); });
 $("searchInput").addEventListener("input", renderGrid);
-$("clearSlot").addEventListener("click", () => commit(null));
+$("clearSlot").addEventListener("click", () => {
+  if (pickSlot === "heart") { S.heart = null; persist(); closePicker(); refresh(); } else commit(null);
+});
 $("formsDone").addEventListener("click", () => { if (pending) commit(pending); });
+
+// 해금 연출: 로그 줄이 하나씩 복호화되고, 마지막에 "云图计划 - UNLOCK"이 맞춰짐. 끝나면 저절로 닫혀요.
+let decodeBusy = false;
+function playDecode(message, hex = CFG.unlockHex, archive = "0x07E1") {
+  if (decodeBusy) return;
+  decodeBusy = true;
+  const box = $("decode"), log = $("decodeLog"), msg = $("decodeMsg");
+  const POOL = "01ABCDEF0123456789#$%&@*+=<>/\\|{}[]?!";
+  const rnd = () => POOL[Math.floor(Math.random() * POOL.length)];
+  const bytes = (hex || "").split(/\s+/).filter(Boolean);
+  const bin = bytes.slice(0, 6).map(b => parseInt(b, 16).toString(2).padStart(8, "0")).join(" ");
+  const lines = [
+    `> INIT  PROJECT.NEURAL.CLOUD  // ARCHIVE ${archive}`,
+    `> LOAD  ${bytes.join(" ")}`,
+    `> BIN   ${bin} …`,
+    "> UTF-8 DECODE ........ OK"
+  ];
+  const finalMsg = `${message}  -  UNLOCK`;
+  log.replaceChildren(); msg.textContent = "";
+  box.hidden = false;
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const close = () => { box.hidden = true; decodeBusy = false; };
+  const scramble = (el, text, per, done) => {
+    const chars = [...text], start = performance.now();
+    const tick = now => {
+      const solved = Math.floor((now - start) / per);
+      el.replaceChildren(...chars.map((ch, i) => {
+        if (i < solved || /\s/.test(ch)) return document.createTextNode(ch);
+        const sp = document.createElement("span"); sp.className = "sc"; sp.textContent = rnd(); return sp;
+      }));
+      if (solved >= chars.length) { el.textContent = text; done(); return; }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  if (reduce) {
+    lines.forEach(l => { const p = document.createElement("p"); p.textContent = l; log.append(p); });
+    msg.textContent = finalMsg; setTimeout(close, 4000); return;
+  }
+  let k = 0;
+  const nextLine = () => {
+    if (k >= lines.length) { setTimeout(() => scramble(msg, finalMsg, 70, () => setTimeout(close, 3000)), 200); return; }
+    const p = document.createElement("p"); log.append(p);
+    scramble(p, lines[k++], 9, () => setTimeout(nextLine, 120));
+  };
+  nextLine();
+}
 
 // 이스터에그: CLOUD의 주황 O를 3번
 let eggClicks = [];
@@ -834,11 +1031,33 @@ $("eggO").addEventListener("click", () => {
   eggClicks = eggClicks.filter(t => now - t < 1500).concat(now);
   if (eggClicks.length >= 3) {
     eggClicks = [];
-    if (S.unlocked) { toast(T().unlockAlready); return; }
+    if (S.unlocked) return;              // 다시 보기는 PROJECT 의 O
     S.unlocked = true; persist();
-    toast(CFG.unlockMessage[S.lang] || CFG.unlockMessage.ko);
+    playDecode(CFG.unlockMessage[S.lang] || CFG.unlockMessage.ko);
   }
 });
+
+// 스킨 해금 키워드: 닉네임 칸에 config.triggers 의 단어를 치고 Enter
+let nickAtFocus = "";
+$("nickInput").addEventListener("focus", e => { nickAtFocus = e.target.value; });
+$("nickInput").addEventListener("keydown", e => {
+  if (e.key !== "Enter" || e.isComposing) return;
+  e.preventDefault();
+  const norm1 = w => w.trim().toLowerCase();
+  const findTrig = w => (CFG.triggers || []).find(t => t.words.some(x => norm1(x) === norm1(w)));
+  const trig = findTrig(e.target.value);
+  if (!trig) return;
+  // 키워드는 닉네임으로 남기지 않고 원래 닉네임으로 되돌림
+  const back = findTrig(nickAtFocus) ? "" : nickAtFocus;
+  e.target.value = back; S.nick = back;
+  S.skinChars = [...new Set([...S.skinChars, ...trig.chars])]; persist(); refresh();
+  e.target.blur();
+  const hex = [...new TextEncoder().encode(trig.message)].map(b => b.toString(16).toUpperCase().padStart(2, "0")).join(" ");
+  playDecode(trig.message, hex, "0x" + (0x0A00 + (CFG.triggers.indexOf(trig) + 1) * 0x12).toString(16).toUpperCase().padStart(4, "0"));
+});
+
+// PROJECT 의 O: 해금한 사람은 눌러서 연출 다시 보기
+$("eggO2").addEventListener("click", () => { if (S.unlocked) playDecode(CFG.unlockMessage[S.lang] || CFG.unlockMessage.ko); });
 
 new ResizeObserver(() => queueRender()).observe(document.querySelector("main"));
 

@@ -106,6 +106,10 @@ main { max-width: 1200px; margin: 0 auto; padding-top: 16px; }
 }
 
 .msg { min-height: 1.5em; margin: 4px 0; font-size: 12px; color: var(--emptyText); }
+.combo { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin: 0 0 12px; }
+.seg { background: var(--panel); border: 0; padding: 7px 14px; cursor: pointer; font-size: 14px; color: var(--sub); }
+.seg + .seg { border-left: 1px solid var(--line); }
+.seg[aria-pressed="true"] { background: var(--accent); color: #1b1408; font-weight: 700; }
 .members { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px; }
 .members li {
   display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line);
@@ -117,6 +121,7 @@ main { max-width: 1200px; margin: 0 auto; padding-top: 16px; }
 /* ===== 하단 PNC ===== */
 .bottom { max-width: 1200px; margin: 24px auto 0; }
 .pnc { margin: 0; font-size: 12px; letter-spacing: .25em; color: var(--sub); user-select: none; }
+.pnc .o { color: var(--accent); }
 .egg {
   background: none; border: 0; padding: 0; margin: 0; cursor: default; color: var(--accent);
   font: inherit; letter-spacing: inherit;
@@ -153,6 +158,8 @@ body[data-theme="white"] .grid h3 img { filter: brightness(.25); }
 .card .hex img { width: 100%; height: 100%; object-fit: cover; }
 .card:hover .hex, .card.sel .hex { outline: none; filter: brightness(1.12); box-shadow: inset 0 0 0 3px var(--accent); }
 .card.sel span { color: var(--accent); }
+.card.hidden-char .hex { box-shadow: inset 0 0 0 3px #d61d62; }
+.card.hidden-char span { color: #d61d62; }
 .card span { line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
 .hearts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 .heart {
@@ -164,6 +171,7 @@ body[data-theme="white"] .grid h3 img { filter: brightness(.25); }
 
 .sheet-foot { border-top: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sheet-foot p { margin: 0; font-size: 12px; color: var(--sub); width: 100%; }
+.sheet-foot .chips { width: 100%; flex: none; }
 .sheet-foot.plain { justify-content: flex-start; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
 .chip {
@@ -172,6 +180,8 @@ body[data-theme="white"] .grid h3 img { filter: brightness(.25); }
 }
 .chip img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
 .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.chip.hidden-chip { border-color: #d61d62; }
+.chip.hidden-chip[aria-pressed="true"] { color: #d61d62; background: rgba(214,29,98,.12); }
 
 .toast {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); opacity: 0;
@@ -180,6 +190,23 @@ body[data-theme="white"] .grid h3 img { filter: brightness(.25); }
   max-width: calc(100% - 32px);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== 해금 연출 (데이터 복호화) — 테마별 창 ===== */
+body[data-theme="black"] { --dBack: rgba(4,5,7,.86); --dBox: #0d0e11; --dText: #e9e7e3; --dDim: #5f646e; }
+body[data-theme="gray"]  { --dBack: rgba(30,32,36,.82); --dBox: #2c2e34; --dText: #f0efed; --dDim: #8a8e97; }
+body[data-theme="white"] { --dBack: rgba(220,221,224,.86); --dBox: #f7f7f8; --dText: #22252a; --dDim: #a3a7af; }
+.decode {
+  position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+  background: var(--dBack); padding: 16px;
+}
+.decode-box {
+  width: min(680px, 100%); border: 1px solid var(--accent); background: var(--dBox); color: var(--dText);
+  padding: 20px 22px; box-shadow: 0 0 0 4px rgba(240,138,36,.12);
+}
+.decode-log { font-size: 12px; line-height: 1.7; color: var(--accent); letter-spacing: .06em; margin-bottom: 14px; min-height: 5.1em; }
+.decode-log p { margin: 0; white-space: pre-wrap; word-break: break-all; }
+.decode-msg { margin: 0; font-size: 24px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.5em; }
+.decode .sc { color: var(--dDim); }
 
 @media (max-width: 560px) {
   .tabs .room-tab { margin-left: 0; }

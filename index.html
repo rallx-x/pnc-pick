@@ -80,16 +80,21 @@
       <button class="btn" id="roomMineBtn" data-t="roomAddMine"></button>
     </div>
     <p class="msg" id="roomMsg" role="status"></p>
+    <div class="combo" role="group">
+      <button type="button" class="seg" id="comboCC" data-t="comboCC"></button>
+      <button type="button" class="seg" id="comboFC" data-t="comboFC"></button>
+    </div>
     <ul class="members" id="memberList"></ul>
     <div class="stage"><canvas id="roomCanvas"></canvas></div>
     <div class="actions">
-      <button class="btn primary" id="roomSaveBtn" data-t="save"></button>
+      <button class="btn primary" id="roomSaveBtn" data-t="saveOne"></button>
+      <button class="btn" id="roomSplitBtn" data-t="saveSplit"></button>
     </div>
   </section>
 </main>
 
 <footer class="bottom">
-  <p class="pnc" aria-label="PROJECT.NEURAL.CLOUD">PROJECT.NEURAL.CL<button id="eggO" class="egg" type="button" aria-label="O">O</button>UD</p>
+  <p class="pnc" aria-label="PROJECT.NEURAL.CLOUD">PR<button id="eggO2" class="egg" type="button" aria-label="O">O</button>JECT.NEURAL.CL<button id="eggO" class="egg" type="button" aria-label="O">O</button>UD</p>
 </footer>
 
 <!-- 캐릭터 고르기 창 -->
@@ -102,8 +107,10 @@
     <input id="searchInput" type="search" autocomplete="off">
     <div class="grid" id="pickGrid"></div>
     <div class="sheet-foot" id="formsBar" hidden>
-      <p data-t="alsoForms"></p>
-      <div class="chips" id="formChips"></div>
+      <p id="skinLabel" hidden></p>
+      <div class="chips" id="skinChips" hidden></div>
+      <p id="formsLabel" data-t="alsoForms" hidden></p>
+      <div class="chips" id="formChips" hidden></div>
       <button class="btn primary" id="formsDone" data-t="done"></button>
     </div>
     <div class="sheet-foot plain">
@@ -113,6 +120,14 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- 여제 해금 연출 -->
+<div class="decode" id="decode" hidden>
+  <div class="decode-box">
+    <div class="decode-log" id="decodeLog"></div>
+    <p class="decode-msg" id="decodeMsg"></p>
+  </div>
+</div>
 
 <script src="js/config.js"></script>
 <script src="js/i18n.js"></script>
