@@ -41,7 +41,7 @@ const guessLang = () => {
   const l = (navigator.language || "ko").toLowerCase();
   return l.startsWith("ja") ? "ja" : l.startsWith("zh") ? "zh" : l.startsWith("ko") ? "ko" : "en";
 };
-let S = { lang: guessLang(), theme: CFG.defaultTheme, bg: "", names: true, tab: "company", nick: "",
+let S = { lang: guessLang(), theme: CFG.defaultTheme, names: true, tab: "company", nick: "",
           picks: blankPicks(), room: { name: "", members: [] }, unlocked: false, heart: null, skins: [], skinChars: [] };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY) || "null");
@@ -58,9 +58,9 @@ const charName = c => (c && (c[S.lang] || c.ko)) || "";
 
 /* ---------- 테마 색 (캔버스용) ---------- */
 const THEME = {
-  black: { bg: "#121316", panel: "#1b1d22", text: "#e9e7e3", sub: "#9b9ea6", line: "#2e3138", empty: "#3b1e1f", emptyText: "#a8595a", frame: "#ffffff", logo: null, bgAlpha: .28 },
-  gray:  { bg: "#393c43", panel: "#43464e", text: "#f0efed", sub: "#bcbfc6", line: "#575b64", empty: "#5a2b2c", emptyText: "#d08585", frame: "#ffffff", logo: null, bgAlpha: .28 },
-  white: { bg: "#e7e8ea", panel: "#f5f5f6", text: "#22252a", sub: "#5f636b", line: "#c9ccd1", empty: "#dcc6c6", emptyText: "#985657", frame: "#4a4e56", logo: "#30333a", bgAlpha: .18 }
+  black: { bg: "#121316", panel: "#1b1d22", text: "#e9e7e3", sub: "#9b9ea6", line: "#2e3138", empty: "#3b1e1f", emptyText: "#a8595a", frame: "#ffffff", logo: null },
+  gray:  { bg: "#393c43", panel: "#43464e", text: "#f0efed", sub: "#bcbfc6", line: "#575b64", empty: "#5a2b2c", emptyText: "#d08585", frame: "#ffffff", logo: null },
+  white: { bg: "#e7e8ea", panel: "#f5f5f6", text: "#22252a", sub: "#5f636b", line: "#c9ccd1", empty: "#dcc6c6", emptyText: "#985657", frame: "#4a4e56", logo: "#30333a" }
 };
 const ACCENT = "#f08a24";
 // 히든 캐릭터(여제) 전용 테두리 — 일러스트 배경의 진한 분홍
@@ -224,18 +224,7 @@ function drawFooter(ctx, W, y, pad) {
   ctx.fillText(`${CFG.copyright}  |  ${CREDIT[S.lang] || CREDIT.ko} ${CFG.author}`, W - pad, y);
 }
 function drawBackground(ctx, W, H) {
-  const t = th();
-  ctx.fillStyle = t.bg; ctx.fillRect(0, 0, W, H);
-  const bg = CFG.backgrounds.find(b => b.id === S.bg);
-  if (bg) {
-    const im = img(bg.file);
-    if (ready(im)) {
-      const s = Math.max(W / im.naturalWidth, H / im.naturalHeight);
-      ctx.save(); ctx.globalAlpha = t.bgAlpha;
-      ctx.drawImage(im, (W - im.naturalWidth * s) / 2, (H - im.naturalHeight * s) / 2, im.naturalWidth * s, im.naturalHeight * s);
-      ctx.restore();
-    }
-  }
+  ctx.fillStyle = th().bg; ctx.fillRect(0, 0, W, H);
 }
 // 로고는 큰 원본(512px)을 한 번에 줄이면 가는 선이 깨져서, 반씩 여러 번 줄인 걸 따로 만들어 둬요
 const scaledCache = {};
@@ -643,18 +632,10 @@ function applyTexts() {
   const ts = $("themeSel");
   ts.replaceChildren(...["black", "gray", "white"].map(k => new Option(t.themes[k], k)));
   ts.value = S.theme;
-  const bgs = CFG.backgrounds || [];
-  $("bgField").hidden = !bgs.length;
-  $("bgSel").replaceChildren(new Option(t.bgNone, ""), ...bgs.map(b => new Option(b.name[S.lang] || b.name.ko, b.id)));
-  $("bgSel").value = S.bg;
 }
 function applyTheme() {
   document.body.dataset.theme = S.theme;
   document.querySelector('meta[name="theme-color"]').content = th().bg;
-  const bg = (CFG.backgrounds || []).find(b => b.id === S.bg);
-  const layer = $("bgLayer");
-  layer.style.backgroundImage = bg ? `url("${bg.file}")` : "";
-  layer.classList.toggle("on", !!bg);
 }
 function applyTab() {
   document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
@@ -933,7 +914,6 @@ document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click
 }));
 $("langSel").addEventListener("change", e => { S.lang = e.target.value; persist(); applyTexts(); applyTab(); refresh(); });
 $("themeSel").addEventListener("change", e => { S.theme = e.target.value; persist(); applyTheme(); refresh(); });
-$("bgSel").addEventListener("change", e => { S.bg = e.target.value; persist(); applyTheme(); refresh(); });
 $("namesChk").addEventListener("change", e => { S.names = e.target.checked; persist(); refresh(); });
 $("nickInput").addEventListener("input", e => { S.nick = e.target.value; persist(); refresh(); });
 $("roomNameInput").addEventListener("input", e => { S.room.name = e.target.value; persist(); refresh(); });
