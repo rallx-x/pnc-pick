@@ -16,7 +16,7 @@ window.PNC_CHARS = [
 {"id": "sueyoi", "ko": "스에요이", "en": "Sueyoi", "zh": "末宵", "ja": "末宵", "company": "42lab", "cls": "specialist", "aliases": ["스에", "조개"], "yomi": ["すえよい"], "variants": ["sueyoi_c", "sueyoi_e", "sueyoi_d", "sueyoi_b", "sueyoi_a", "sueyoi_1", "sueyoi_2", "sueyoi_3"]},
 {"id": "hannah", "ko": "한나", "en": "Hannah", "zh": "汉娜", "ja": "ハンナ", "company": "42lab", "cls": "specialist", "aliases": [], "yomi": []},
 {"id": "turing", "ko": "튜링", "en": "Turing", "zh": "图灵", "ja": "チューリング", "company": "42lab", "cls": "specialist", "aliases": [], "yomi": []},
-{"id": "persicaria2", "ko": "페르시카 · 집도", "en": "Persicaria S.E.", "zh": "帕斯卡 · 执锋", "ja": "ペルシカ·執鋒", "company": "42lab", "cls": "warrior", "aliases": ["집도"], "yomi": [], "family": "persicaria", "variants": ["persicaria2", "persicaria2_2", "persicaria2_3", "persicaria2_4"], "order": ["persicaria2", "persicaria2_3", "persicaria2_2", "persicaria2_4"]},
+{"id": "persicaria2", "ko": "페르시카 · 집도", "en": "Persicaria S.E.", "zh": "帕斯卡 · 执锋", "ja": "ペルシカ·執鋒", "company": "42lab", "cls": "warrior", "aliases": ["집도"], "yomi": [], "family": "persicaria", "variants": ["persicaria2", "persicaria2_2", "persicaria2_3", "persicaria2_4"]},
 {"id": "eniac", "ko": "에니악", "en": "Eniac", "zh": "埃妮阿克", "ja": "エニアック", "company": "42lab", "cls": "medic", "aliases": [], "yomi": []},
 {"id": "simo", "ko": "시모", "en": "Simo", "zh": "席摩", "ja": "シーモ", "company": "svarog", "cls": "sniper", "aliases": [], "yomi": [], "variants": ["simo", "simo_2", "simo_3", "simo_4", "simo_5", "simo_6"]},
 {"id": "chelsea", "ko": "첼시", "en": "Chelsea", "zh": "炽", "ja": "チェルシー", "company": "svarog", "cls": "warrior", "aliases": [], "yomi": []},

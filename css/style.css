@@ -164,7 +164,8 @@ body[data-theme="white"] .grid h3 img { filter: brightness(.25); }
   width: 52px; aspect-ratio: 1.1547; border: 0; cursor: pointer; font-family: "PNC Pixel Emoji", var(--font); font-size: 24px;
   background: var(--hc); clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
 }
-.heart:hover, .heart.sel { filter: brightness(1.15); box-shadow: inset 0 0 0 3px var(--accent); }
+/* 고르면 바로 닫히니까 '선택됨' 표시는 없음. 마우스 올리면 살짝 밝아지기만 */
+.heart:hover { filter: brightness(1.15); }
 .empty-msg { color: var(--sub); font-size: 12px; padding: 24px 0; text-align: center; }
 
 .sheet-foot { border-top: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
