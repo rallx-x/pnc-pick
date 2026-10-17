@@ -101,6 +101,37 @@ function logoImg(key) {
 }
 const ready = im => im && (im instanceof HTMLCanvasElement || (im.complete && im.naturalWidth));
 
+/* ---------- 빈칸 (assets/blank/missing.png) ---------- */
+// 빈칸 색 = 고른 하트 색 (안 골랐으면 기본 빨강)
+// 콜라보 캐릭터를 하나라도 골랐으면 랜덤 색 (들어올 때·픽을 바꿀 때마다 새로 뽑아요)
+const blankSrc = "assets/blank/missing.png";
+const blankRand = {};
+const hasCollab = groups => groups.some(arr => (arr || []).some(pk => pk &&
+  [pk.img, ...(pk.extra || [])].some(id => byImg[id] && byImg[id].company === "collab")));
+function blankColor(key, heartId, groups) {
+  if (hasCollab(groups)) {
+    if (!blankRand[key]) blankRand[key] = HEARTS[Math.floor(Math.random() * HEARTS.length)].c;
+    return blankRand[key];
+  }
+  return (heartOf(heartId) || HEARTS[0]).c;
+}
+const myBlank = () => blankColor("me", S.heart, [S.picks.company, S.picks.free]);
+const tintedBlank = {};
+function blankImg(col) {
+  const base = img(blankSrc);
+  if (!base.complete || !base.naturalWidth) return null;
+  if (!tintedBlank[col]) {
+    const c = document.createElement("canvas");
+    c.width = base.naturalWidth; c.height = base.naturalHeight;
+    const x = c.getContext("2d");
+    x.drawImage(base, 0, 0);
+    x.globalCompositeOperation = "multiply"; x.fillStyle = col; x.fillRect(0, 0, c.width, c.height);
+    x.globalCompositeOperation = "destination-in"; x.drawImage(base, 0, 0);
+    tintedBlank[col] = c;
+  }
+  return tintedBlank[col];
+}
+
 /* ---------- 육각형 ---------- */
 const R3 = Math.sqrt(3);
 function hexPath(ctx, cx, cy, w, h, pointy) {
@@ -139,9 +170,19 @@ function drawCell(ctx, cx, cy, w, h, pointy, imgId, opts = {}) {
     }
     ctx.restore();
   } else {
-    ctx.fillStyle = t.empty; ctx.fill();
-    if (!opts.small) {
-      ctx.fillStyle = t.emptyText; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const col = opts.blank || HEARTS[0].c;
+    ctx.fillStyle = t.panel; ctx.fill();
+    ctx.save(); ctx.clip();
+    ctx.globalAlpha = .22; ctx.fillStyle = col; ctx.fillRect(cx - w / 2, cy - h / 2, w, h); ctx.globalAlpha = 1;
+    const bim = blankImg(col);
+    if (bim) {
+      const s = Math.max(w, h);
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(bim, cx - s / 2, cy - s / 2, s, s);
+    }
+    ctx.restore();
+    if (!bim && !opts.small) {
+      ctx.fillStyle = col; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.font = `700 ${Math.round(h * 0.33 / 12) * 12 || 12}px ${FONT}`;
       ctx.fillText("?", cx, cy + 2);
     }
@@ -366,9 +407,10 @@ function drawSection(ctx, sec, hover, W, labeled) {
     }
   });
   // 칸 (붙어 있는 지그재그)
+  const blank = myBlank();
   sec.cells.forEach(cell => {
     if (cell.plus) { drawPlusCell(ctx, cell.cx, cell.cy); return; }
-    drawCell(ctx, cell.cx, cell.cy, L1.W, L1.H, false, picks[cell.i] && picks[cell.i].img);
+    drawCell(ctx, cell.cx, cell.cy, L1.W, L1.H, false, picks[cell.i] && picks[cell.i].img, { blank });
   });
   // 이격 (같은 크기, 골짜기에) + 주황 테두리로 묶기
   sec.cells.forEach(cell => {
@@ -447,10 +489,10 @@ function layoutRoom(combo, members, part = "all") {
     height: top + Math.max(1, members.length) * blockH + L2.footer + L2.pad / 2
   };
 }
-function drawRoomRow(ctx, picks, xs, cy) {
+function drawRoomRow(ctx, picks, xs, cy, blank) {
   const t = th();
   picks.forEach((pick, i) => {
-    drawCell(ctx, xs(i), cy, L2.W, L2.H, true, pick && pick.img);
+    drawCell(ctx, xs(i), cy, L2.W, L2.H, true, pick && pick.img, { blank });
     if (S.names && pick && byImg[pick.img]) {
       setFont(ctx, 12, false); ctx.textAlign = "center"; ctx.fillStyle = t.sub;
       ctx.fillText(fitText(ctx, charName(byImg[pick.img]), L2.pitch - 4), xs(i), cy + L2.H / 2 + 18);
@@ -496,11 +538,12 @@ function drawRoom(ctx, L, members) {
     ctx.fillText(nm, L2.pad, midY + 8);
     if (m.heart && heartOf(m.heart)) drawHeartIcon(ctx, heartOf(m.heart).e, L2.pad + ctx.measureText(nm).width + 22, midY, 24);
     let y = by;
-    if (L.showTop) { drawRoomRow(ctx, m.a, L.colX, y + L2.H / 2); y += L.rowH; }
+    const blank = blankColor("m:" + r, m.heart, [m.company, m.free]);
+    if (L.showTop) { drawRoomRow(ctx, m.a, L.colX, y + L2.H / 2, blank); y += L.rowH; }
     if (L.showCls) {
       const cy = y + L2.H / 2;
       CLASSES.forEach((k, i) => drawLogo(ctx, k, L.clsIconX(i), cy - L2.icon / 2, L2.icon));
-      drawRoomRow(ctx, m.b, L.clsX, cy);
+      drawRoomRow(ctx, m.b, L.clsX, cy, blank);
     }
     if (r < members.length - 1) {
       ctx.strokeStyle = t.line; ctx.lineWidth = 1;
@@ -666,6 +709,7 @@ function applyTexts() {
   document.title = `${t.gameTitle} ${t.siteTitle}`;
   $("gameTitle").textContent = I18N.en.gameTitle;   // 위 작은 제목은 언어 상관없이 영어 표기 고정
   $("siteTitle").textContent = t.siteTitle;
+  document.querySelectorAll("#noticePop [data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === S.lang)));
   $("notice").replaceChildren(...t.notice.map(line => { const p = document.createElement("p"); p.textContent = line; return p; }));
   document.querySelectorAll("[data-t]").forEach(el => { if (t[el.dataset.t]) el.textContent = t[el.dataset.t]; });
   document.querySelectorAll("#tabs button").forEach(b => { b.textContent = t.tabs[b.dataset.tab]; });
@@ -807,6 +851,7 @@ function openPicker(tab, i) {
 function closePicker() { $("picker").hidden = true; pickSlot = -1; pending = null; }
 function commit(pick) {
   S.picks[pickTab][pickSlot] = pick;
+  delete blankRand.me;   // 콜라보 랜덤 색은 픽을 바꿀 때마다 새로
   // 종합 탭: 기업 칸에서 고르면 그 직군 칸이 비어 있을 때만 한 번 같이 채움 (조커·하트 제외)
   if (S.tab === "total" && pickTab === "company" && pickSlot < 7 && pick) {
     const c = byImg[pick.img];
@@ -957,7 +1002,22 @@ singleCanvas.addEventListener("mouseleave", () => { if (hoverIdx) { hoverIdx = n
 document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => {
   S.tab = b.dataset.tab; persist(); applyTab(); refresh();
 }));
-$("langSel").addEventListener("change", e => { S.lang = e.target.value; persist(); applyTexts(); applyTab(); refresh(); });
+function setLang(l) { S.lang = l; $("langSel").value = l; persist(); applyTexts(); applyTab(); refresh(); }
+$("langSel").addEventListener("change", e => setLang(e.target.value));
+
+/* ---------- 공지 팝업 ---------- */
+const NOTICE_VER = CFG.noticeVersion || 1;
+function openNotice() { $("noticeHide").checked = S.noticeHidden === NOTICE_VER; $("noticePop").hidden = false; }
+function closeNotice() {
+  S.noticeHidden = $("noticeHide").checked ? NOTICE_VER : 0; persist();
+  $("noticePop").hidden = true;
+}
+document.querySelectorAll("#noticePop [data-lang]").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
+$("noticeBtn").addEventListener("click", openNotice);
+$("noticeOk").addEventListener("click", closeNotice);
+$("noticeClose").addEventListener("click", closeNotice);
+$("noticePop").addEventListener("click", e => { if (e.target.id === "noticePop") closeNotice(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("noticePop").hidden) closeNotice(); });
 $("themeSel").addEventListener("change", e => { S.theme = e.target.value; persist(); applyTheme(); refresh(); });
 $("namesChk").addEventListener("change", e => { S.names = e.target.checked; persist(); refresh(); });
 $("nickInput").addEventListener("input", e => { S.nick = e.target.value; persist(); refresh(); });
@@ -1091,6 +1151,7 @@ $("langSel").value = S.lang;
 $("namesChk").checked = S.names;
 $("nickInput").value = S.nick;
 applyTexts(); applyTheme(); applyTab(); refresh();
+if (S.noticeHidden !== NOTICE_VER) openNotice();
 
 // 확인용 (개발자 도구에서 사용)
 window.PNC_DEBUG = { state: () => S, layout: () => singleL, makeCode, readCode, render: queueRender };

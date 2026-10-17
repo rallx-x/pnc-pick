@@ -10,6 +10,7 @@ window.PNC_I18N = {
       "소녀전선: 뉴럴 클라우드 취향픽 팬메이드 사이트입니다.",
       "플레이어블 캐릭터를 상정하고 제작하였으며, 추후 NPC 등의 업데이트 가능성은 미약합니다.",
       "기업별 분류에서 하트 표시를 누르시면 하트 색상을 변경할 수 있어요.",
+      "선택을 하지 않으면 신호를 탐색중이라고 떠요.",
       "공유 코드는 「종합」 탭에서만 만들 수 있어요. 모아보기에서 기업별 + 직군별 / 내맘대로 8인 + 직군별로 나눠서 볼 수 있어요.",
       "모쪼록 즐겨주시길 바라겠습니다. 감사합니다."
     ],
@@ -28,6 +29,7 @@ window.PNC_I18N = {
     copy: "복사", copied: "복사했어요", copyFail: "복사가 막혀 있어요. 칸 안의 코드를 직접 선택해서 복사해 주세요.",
     resetConfirm: "정말 비울까요? 한 번 더 누르면 비워져요.",
     pickTitle: "캐릭터 고르기", search: "이름·별명으로 검색",
+    noticeTitle: "공지", noticeHide: "다음부터 보지 않기", noticeOpen: "공지",
     clear: "이 칸 비우기", close: "닫기", done: "확인",
     alsoForms: "다른 모습도 함께 넣기",
     collabNote: "해당 캐릭터들은 콜라보레이션 캐릭터입니다.",
@@ -54,6 +56,7 @@ window.PNC_I18N = {
       "A fan-made favorite-pick site for Girls' Frontline: Neural Cloud.",
       "Built around playable characters only; NPCs are unlikely to be added later.",
       "In By Company, tap the heart to change its color.",
+      "Empty slots show that they're still searching for a signal.",
       "Share codes can only be made in the All-in-One tab. In Group View you can switch between Company + Class and Squad of 8 + Class.",
       "We hope you enjoy it. Thank you."
     ],
@@ -72,6 +75,7 @@ window.PNC_I18N = {
     copy: "Copy", copied: "Copied", copyFail: "Copying is blocked here. Select the code in the box and copy it yourself.",
     resetConfirm: "Clear everything? Press again to confirm.",
     pickTitle: "Choose a character", search: "Search by name",
+    noticeTitle: "Notice", noticeHide: "Don't show again", noticeOpen: "Notice",
     clear: "Empty this slot", close: "Close", done: "Done",
     alsoForms: "Also include other forms",
     collabNote: "These are collaboration characters.",
@@ -98,6 +102,7 @@ window.PNC_I18N = {
       "这是《少女前线: 云图计划》的粉丝自制本命选择网站。",
       "以可操作角色为准制作，之后追加 NPC 等的可能性很低。",
       "在“按企业”分类中点击爱心，即可更改爱心的颜色。",
+      "未选择的格子会显示正在搜索信号。",
       "分享码只能在“综合”页生成。在汇总里可以切换查看 企业 + 职业 / 自选 8 人 + 职业。",
       "希望大家玩得开心。谢谢。"
     ],
@@ -116,6 +121,7 @@ window.PNC_I18N = {
     copy: "复制", copied: "已复制", copyFail: "这里无法自动复制，请手动选中框内代码复制。",
     resetConfirm: "确定清空吗？再按一次即可清空。",
     pickTitle: "选择角色", search: "按名字搜索",
+    noticeTitle: "公告", noticeHide: "不再显示", noticeOpen: "公告",
     clear: "清空此格", close: "关闭", done: "确定",
     alsoForms: "同时放入其他形态",
     collabNote: "以下为联动角色。",
@@ -142,6 +148,7 @@ window.PNC_I18N = {
       "ドールズフロントライン: ニューラルクラウドの推しピック ファンメイドサイトです。",
       "プレイアブルキャラクターを前提に制作しており、今後 NPC などが追加される可能性は低いです。",
       "企業別でハートを押すと、ハートの色を変えられます。",
+      "選択しない枠には、信号を探索中と表示されます。",
       "共有コードは「総合」タブでのみ作れます。まとめでは 企業別 + クラス別 / 自由編成 8人 + クラス別 を切り替えて見られます。",
       "楽しんでいただけたら嬉しいです。ありがとうございます。"
     ],
@@ -160,6 +167,7 @@ window.PNC_I18N = {
     copy: "コピー", copied: "コピーしました", copyFail: "ここでは自動コピーできません。枠内のコードを選択してコピーしてください。",
     resetConfirm: "本当に空にしますか？もう一度押すと空になります。",
     pickTitle: "キャラクターを選ぶ", search: "名前・よみで検索",
+    noticeTitle: "お知らせ", noticeHide: "次から表示しない", noticeOpen: "お知らせ",
     clear: "この枠を空にする", close: "閉じる", done: "決定",
     alsoForms: "別の姿も一緒に入れる",
     collabNote: "以下はコラボキャラクターです。",
