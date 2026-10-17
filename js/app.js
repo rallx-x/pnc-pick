@@ -80,9 +80,12 @@ function img(src) {
   }
   return imgCache[src];
 }
-const portrait = id => img(`assets/portrait/${id}.png`);
-const logoSrc = key => key === "alternatives" ? "assets/campany/alternatives.png"
-  : CLASSES.includes(key) ? `assets/class/${key}.png` : `assets/campany/${key}.png`;
+// 그림을 바꿨을 때 config.js 의 assetVersion 숫자를 올리면 모두에게 새 그림이 보여요 (브라우저 저장본 무시)
+const AV = "?v=" + (CFG.assetVersion || 1);
+const portraitSrc = id => `assets/portrait/${id}.png${AV}`;
+const portrait = id => img(portraitSrc(id));
+const logoSrc = key => (key === "alternatives" ? "assets/campany/alternatives.png"
+  : CLASSES.includes(key) ? `assets/class/${key}.png` : `assets/campany/${key}.png`) + AV;
 const tinted = {};
 function logoImg(key) {
   const base = img(logoSrc(key));
@@ -104,7 +107,7 @@ const ready = im => im && (im instanceof HTMLCanvasElement || (im.complete && im
 /* ---------- 빈칸 (assets/blank/missing.png) ---------- */
 // 빈칸 색 = 고른 하트 색 (안 골랐으면 기본 빨강)
 // 콜라보 캐릭터를 하나라도 골랐으면 랜덤 색 (들어올 때·픽을 바꿀 때마다 새로 뽑아요)
-const blankSrc = "assets/blank/missing.png";
+const blankSrc = "assets/blank/missing.png" + AV;
 const blankRand = {};
 const hasCollab = groups => groups.some(arr => (arr || []).some(pk => pk &&
   [pk.img, ...(pk.extra || [])].some(id => byImg[id] && byImg[id].company === "collab")));
@@ -786,7 +789,7 @@ function cardEl(c, selected) {
   const b = document.createElement("button");
   b.type = "button"; b.className = "card" + (selected ? " sel" : "") + (c.hidden ? " hidden-char" : "");
   const hex = document.createElement("div"); hex.className = "hex";
-  const im = document.createElement("img"); im.loading = "lazy"; im.alt = ""; im.src = `assets/portrait/${imgOf(c)}.png`;
+  const im = document.createElement("img"); im.loading = "lazy"; im.alt = ""; im.src = portraitSrc(imgOf(c));
   hex.append(im);
   const sp = document.createElement("span"); sp.textContent = charName(c);
   b.append(hex, sp);
@@ -878,7 +881,7 @@ function choose(c) {
     const b = document.createElement("button");
     b.type = "button"; b.className = "chip" + (cls ? " " + cls : "");
     b.setAttribute("aria-pressed", String(on));
-    const im = document.createElement("img"); im.alt = ""; im.src = `assets/portrait/${src}.png`;
+    const im = document.createElement("img"); im.alt = ""; im.src = portraitSrc(src);
     im.onerror = () => { b.remove(); };   // 아직 이미지가 없는 스킨은 안 보이게
     b.append(im, document.createTextNode(label));
     b.addEventListener("click", click);
