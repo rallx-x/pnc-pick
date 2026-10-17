@@ -862,8 +862,10 @@ function commit(pick) {
 }
 // 홍옥의 여제는 집도가 함께 있을 때만 "다른 모습"으로 나타나요
 const EMPRESS_NEEDS = { persicaria3: "persicaria2" };
-// 이 캐릭터에서 지금 고를 수 있는 일러스트 (기본 + 해금한 스킨), data.js 순서대로
-const skinOptions = c => !c.variants ? [] : S.skinChars.includes(c.id) ? c.variants : c.variants.filter(v => v === imgOf(c) || S.skins.includes(v));
+// 이 캐릭터에서 지금 고를 수 있는 일러스트 (기본 + 해금한 스킨)
+// 보이는 순서 = data.js 의 "order" (없으면 variants 순서). order 는 마음대로 바꿔도 코드가 안 깨져요.
+const skinOrder = c => (c.order || c.variants).filter(v => c.variants.includes(v));
+const skinOptions = c => !c.variants ? [] : S.skinChars.includes(c.id) ? skinOrder(c) : skinOrder(c).filter(v => v === imgOf(c) || S.skins.includes(v));
 function choose(c) {
   const skins = skinOptions(c);
   const others = familyOthers(c);
