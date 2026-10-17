@@ -151,9 +151,10 @@ body[data-theme="white"] .grid h3 img { filter: brightness(.25); }
 .card .hex {
   width: 84px; aspect-ratio: 1.1547; max-width: 100%; background: var(--panel);
   clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
-  display: grid; place-items: center; overflow: hidden;
+  position: relative; overflow: hidden;
 }
-.card .hex img { width: 100%; height: 100%; object-fit: cover; }
+/* 아이폰 사파리에서 그림이 아래로 밀리던 문제: 칸에 딱 맞게 고정 */
+.card .hex img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
 .card:hover .hex, .card.sel .hex { outline: none; filter: brightness(1.12); box-shadow: inset 0 0 0 3px var(--accent); }
 .card.sel span { color: var(--accent); }
 .card.hidden-char .hex { box-shadow: inset 0 0 0 3px #d61d62; }
