@@ -179,7 +179,7 @@ function drawCell(ctx, cx, cy, w, h, pointy, imgId, opts = {}) {
     ctx.globalAlpha = .22; ctx.fillStyle = col; ctx.fillRect(cx - w / 2, cy - h / 2, w, h); ctx.globalAlpha = 1;
     const bim = blankImg(col);
     if (bim) {
-      const s = Math.max(w, h);
+      const s = Math.min(w, h) * (CFG.blankScale || 0.55);
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(bim, cx - s / 2, cy - s / 2, s, s);
     }
