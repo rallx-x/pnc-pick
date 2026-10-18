@@ -921,6 +921,8 @@ function choose(c) {
 /* =====================================================================
    모아보기 (다인)
    ===================================================================== */
+// 이름 칸 표기: 채운·💙 (하트 없으면 이름만)
+const chipLabel = (n, h) => (n || T().nobody) + (h && heartOf(h) ? "·" + heartOf(h).e : "");
 let editIdx = -1;   // 모아보기에서 닉네임·하트 고치는 중인 사람
 const roomMeta = () => { if (!Array.isArray(S.room.meta)) S.room.meta = []; return S.room.meta; };
 function setMeta(i, key, val) { const meta = roomMeta(); meta[i] = { ...(meta[i] || {}), [key]: val }; persist(); refresh(); }
@@ -931,7 +933,7 @@ function renderMembers() {
     const li = document.createElement("li");
     if (i === editIdx) li.className = "on";
     const nm = document.createElement("button"); nm.type = "button"; nm.className = "who"; nm.title = T().memberEdit;
-    nm.textContent = (m.n || T().nobody) + (m.heart && heartOf(m.heart) ? " " + heartOf(m.heart).e : "") + " ✎";
+    nm.textContent = chipLabel(m.n, m.heart);
     nm.addEventListener("click", () => { editIdx = editIdx === i ? -1 : i; renderMembers(); });
     const x = document.createElement("button"); x.type = "button"; x.textContent = "✕"; x.title = T().remove;
     x.addEventListener("click", () => {
@@ -956,7 +958,7 @@ function renderMemberEdit() {
   inp.addEventListener("input", () => {
     setMeta(editIdx, "n", inp.value);
     const b = $("memberList").querySelector("li.on .who");
-    if (b) b.textContent = (inp.value || t.nobody) + (m.heart && heartOf(m.heart) ? " " + heartOf(m.heart).e : "") + " ✎";
+    if (b) b.textContent = chipLabel(inp.value, m.heart);
   });
   lab.append(sp, inp);
   const hs = document.createElement("div"); hs.className = "hearts mini";

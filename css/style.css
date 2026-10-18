@@ -115,7 +115,7 @@ main { max-width: 1200px; margin: 0 auto; padding-top: 16px; }
 }
 .members button { background: none; border: 0; cursor: pointer; color: var(--sub); padding: 2px 6px; }
 .members button:hover { color: var(--accent); }
-.members .who { color: var(--text); padding: 2px 2px; font-size: 12px; }
+.members .who { color: var(--text); padding: 2px 2px; font-size: 12px; font-family: var(--font); text-decoration: underline dotted var(--sub); text-underline-offset: 3px; }
 .members li.on { border-color: var(--accent); }
 .member-edit {
   background: var(--panel); border: 1px solid var(--accent); border-radius: 6px; padding: 12px; margin: 0 0 12px;
