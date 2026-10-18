@@ -720,7 +720,24 @@ function applyTexts() {
   $("gameTitle").textContent = I18N.en.gameTitle;   // 위 작은 제목은 언어 상관없이 영어 표기 고정
   $("siteTitle").textContent = t.siteTitle;
   document.querySelectorAll("#noticePop [data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === S.lang)));
-  $("notice").replaceChildren(...t.notice.map(line => { const p = document.createElement("p"); p.textContent = line; return p; }));
+  // 공지: "---" 는 구분선, 맨 아래 업데이트 내역은 접은 글
+  const parts = t.notice.map(line => {
+    if (line === "---") return document.createElement("hr");
+    const p = document.createElement("p"); p.textContent = line; return p;
+  });
+  const ups = t.updates || I18N.ko.updates || [];
+  if (ups.length) {
+    const d = document.createElement("details"); d.className = "updates";
+    const sm = document.createElement("summary"); sm.textContent = "업데이트 / Updates / 更新";
+    const ul = document.createElement("ul");
+    ups.forEach(([date, text]) => {
+      const li = document.createElement("li");
+      const dt = document.createElement("span"); dt.className = "date"; dt.textContent = date;
+      li.append(dt, document.createTextNode(text)); ul.append(li);
+    });
+    d.append(sm, ul); parts.push(document.createElement("hr"), d);
+  }
+  $("notice").replaceChildren(...parts);
   document.querySelectorAll("[data-t]").forEach(el => { if (t[el.dataset.t]) el.textContent = t[el.dataset.t]; });
   document.querySelectorAll("#tabs button").forEach(b => { b.textContent = t.tabs[b.dataset.tab]; });
   $("nickInput").placeholder = t.nicknamePh;

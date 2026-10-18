@@ -61,6 +61,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: var(--panel); border-left: 3px solid var(--accent); font-size: 12px; color: var(--sub);
 }
 .notice p { margin: 0; }
+.notice hr { border: 0; border-top: 1px dashed var(--line); margin: 10px 0; }
+.notice .updates summary { cursor: pointer; color: var(--text); list-style: none; user-select: none; }
+.notice .updates summary::-webkit-details-marker { display: none; }
+.notice .updates summary::after { content: " ▾"; color: var(--accent); }
+.notice .updates[open] summary::after { content: " ▴"; }
+.notice .updates ul { margin: 8px 0 0; padding-left: 0; list-style: none; max-height: 180px; overflow-y: auto; }
+.notice .updates li { margin: 0 0 4px; }
+.notice .updates .date { color: var(--accent); margin-right: 8px; font-variant-numeric: tabular-nums; }
 .notice-sheet { width: min(560px, 100%); }
 .notice-sheet .langs { margin: 4px 16px 12px; flex-wrap: wrap; }
 .notice-sheet .sheet-foot { justify-content: space-between; }

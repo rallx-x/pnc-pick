@@ -7,12 +7,17 @@ window.PNC_I18N = {
     gameTitle: "소녀전선: 뉴럴 클라우드",
     siteTitle: "취향픽",
     notice: [
-      "소녀전선: 뉴럴 클라우드 취향픽 팬메이드 사이트입니다.",
-      "플레이어블 캐릭터를 상정하고 제작하였으며, 추후 NPC 등의 업데이트 가능성은 미약합니다.",
-      "기업별 분류에서 하트 표시를 누르시면 하트 색상을 변경할 수 있어요.",
-      "선택을 하지 않으면 신호를 탐색중이라고 떠요.",
-      "공유 코드는 「종합」 탭에서만 만들 수 있어요. 모아보기에서 기업별 + 직군별 / 내맘대로 8인 + 직군별로 나눠서 볼 수 있어요.",
-      "모쪼록 즐겨주시길 바라겠습니다. 감사합니다."
+      "소녀전선: 뉴럴 클라우드의 플레이어블 캐릭터 취향픽을 정리할 수 있는 사이트입니다.",
+      "바이브 코딩으로 제작한 팬메이드 사이트이며, 모든 권리는 선본 네트워크(Sunborn Network Technology Co., Ltd.)와 미카팀(MICA Team)에 있습니다.",
+      "오류 등의 사항은 X @BPT2xNoa 로 연락 부탁드리겠습니다. 감사합니다.",
+      "---",
+      "· 하트를 누르면 하트 색상을 변경할 수 있습니다.",
+      "· 여러 명의 결과표는 「종합」 탭에서 코드를 발급받아 「모아보기」에 입력하면 만들 수 있습니다.",
+      "· 타로타로스에서 교수님들을 기다리고 있는 여제님을 찾아보세요!"
+    ],
+    updates: [
+      ["2026.10.18", "모아보기에서 참여자의 닉네임과 하트 색상을 변경할 수 있게 업데이트되었습니다."],
+      ["2026.10.18", "모아보기에서 참여자의 순서를 재정렬할 수 있게 업데이트되었습니다."]
     ],
     tabs: { company: "기업별", class: "직군별", free: "내맘대로 8인", total: "종합", room: "모아보기" },
     chartTitle: { company: "기업별 취향픽", class: "직군별 취향픽", free: "내맘대로 8인" , total: "종합 취향픽" },
@@ -53,12 +58,17 @@ window.PNC_I18N = {
     gameTitle: "GIRLS' FRONTLINE //:_ NEURAL CLOUD",
     siteTitle: "Favorite Picks",
     notice: [
-      "A fan-made favorite-pick site for Girls' Frontline: Neural Cloud.",
-      "Built around playable characters only; NPCs are unlikely to be added later.",
-      "In By Company, tap the heart to change its color.",
-      "Empty slots show that they're still searching for a signal.",
-      "Share codes can only be made in the All-in-One tab. In Group View you can switch between Company + Class and Squad of 8 + Class.",
-      "We hope you enjoy it. Thank you."
+      "A site for picking your favorite playable characters from Girls' Frontline: Neural Cloud.",
+      "This is a fan-made site built with vibe coding. All rights belong to Sunborn Network Technology Co., Ltd. and MICA Team.",
+      "For bugs or issues, please contact X @BPT2xNoa. Thank you.",
+      "---",
+      "· Tap the heart to change its color.",
+      "· For a group chart, make a code in the All-in-One tab and enter it in Group View.",
+      "· Find the Empress waiting for the Professors in Tartarus!"
+    ],
+    updates: [
+      ["2026.10.18", "You can now edit each member's nickname and heart color in Group View."],
+      ["2026.10.18", "You can now reorder members in Group View."]
     ],
     tabs: { company: "By Company", class: "By Class", free: "My Squad of 8", total: "All-in-One", room: "Group View" },
     chartTitle: { company: "Favorites by Company", class: "Favorites by Class", free: "My Squad of 8" , total: "All-in-One Favorites" },
@@ -99,12 +109,17 @@ window.PNC_I18N = {
     gameTitle: "少女前线: 云图计划",
     siteTitle: "本命选择",
     notice: [
-      "这是《少女前线: 云图计划》的粉丝自制本命选择网站。",
-      "以可操作角色为准制作，之后追加 NPC 等的可能性很低。",
-      "在“按企业”分类中点击爱心，即可更改爱心的颜色。",
-      "未选择的格子会显示正在搜索信号。",
-      "分享码只能在“综合”页生成。在汇总里可以切换查看 企业 + 职业 / 自选 8 人 + 职业。",
-      "希望大家玩得开心。谢谢。"
+      "这是一个整理《少女前线: 云图计划》可操作角色本命的网站。",
+      "本站为使用 vibe coding 制作的粉丝自制网站，所有权利归散爆网络（Sunborn Network Technology Co., Ltd.）与 MICA Team 所有。",
+      "如有错误等问题，请通过 X @BPT2xNoa 联系。谢谢。",
+      "---",
+      "· 点击爱心可以更改爱心颜色。",
+      "· 多人表格：在「综合」页生成代码，再输入到「汇总」即可。",
+      "· 去塔尔塔洛斯找找正在等待教授们的女帝吧！"
+    ],
+    updates: [
+      ["2026.10.18", "汇总中可以修改参与者的昵称和爱心颜色。"],
+      ["2026.10.18", "汇总中可以调整参与者的顺序。"]
     ],
     tabs: { company: "按企业", class: "按职业", free: "自选 8 人", total: "综合", room: "汇总" },
     chartTitle: { company: "企业本命", class: "职业本命", free: "自选 8 人" , total: "综合本命" },
@@ -145,12 +160,17 @@ window.PNC_I18N = {
     gameTitle: "ドールズフロントライン: ニューラルクラウド",
     siteTitle: "推しピック",
     notice: [
-      "ドールズフロントライン: ニューラルクラウドの推しピック ファンメイドサイトです。",
-      "プレイアブルキャラクターを前提に制作しており、今後 NPC などが追加される可能性は低いです。",
-      "企業別でハートを押すと、ハートの色を変えられます。",
-      "選択しない枠には、信号を探索中と表示されます。",
-      "共有コードは「総合」タブでのみ作れます。まとめでは 企業別 + クラス別 / 自由編成 8人 + クラス別 を切り替えて見られます。",
-      "楽しんでいただけたら嬉しいです。ありがとうございます。"
+      "ドールズフロントライン: ニューラルクラウドのプレイアブルキャラクターの推しをまとめられるサイトです。",
+      "バイブコーディングで制作したファンメイドサイトで、すべての権利は Sunborn Network Technology Co., Ltd. と MICA Team に帰属します。",
+      "不具合などは X @BPT2xNoa までご連絡ください。ありがとうございます。",
+      "---",
+      "· ハートを押すとハートの色を変えられます。",
+      "· 複数人の表は「総合」タブでコードを発行し、「まとめ」に入力すると作れます。",
+      "· タルタロスで教授たちを待っている女帝様を探してみてください！"
+    ],
+    updates: [
+      ["2026.10.18", "まとめで参加者のニックネームとハートの色を変更できるようになりました。"],
+      ["2026.10.18", "まとめで参加者の順番を並べ替えられるようになりました。"]
     ],
     tabs: { company: "企業別", class: "クラス別", free: "自由編成 8人", total: "総合", room: "まとめ" },
     chartTitle: { company: "企業別 推し", class: "クラス別 推し", free: "自由編成 8人" , total: "総合 推し" },
