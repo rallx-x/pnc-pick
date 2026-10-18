@@ -6,6 +6,7 @@ window.PNC_I18N = {
   ko: {
     gameTitle: "소녀전선: 뉴럴 클라우드",
     siteTitle: "취향픽",
+    saveImages: "저장하기", saveTitle: "저장할 이미지 고르기", saveZip: "ZIP 파일로 받기", savePickOne: "저장할 이미지를 하나 이상 골라 주세요.", roomNothing: "채워진 사람이 없어요", roomAllEmpty: "이 조합을 채운 사람이 아직 없어요", memberEmpty: "이 조합에서 채운 칸이 없어서 결과표에서 빠져요", memberEmptyTag: "미입력", blankHint: "취향인 캐릭터가 없다면, 빈칸으로 두셔도 괜찮습니다.",
     notice: [
       "소녀전선: 뉴럴 클라우드의 플레이어블 캐릭터 취향픽을 정리할 수 있는 사이트입니다.",
       "플레이어블 캐릭터를 기준으로 제작하였으며, 추후 NPC 등이 추가될 가능성은 낮습니다.",
@@ -22,6 +23,7 @@ window.PNC_I18N = {
       "모쪼록 즐겨주시길 바랍니다. 감사합니다."
     ],
     updates: [
+      ["2026.10.18", "모아보기 저장을 [저장하기] 하나로 합쳤습니다. 원하는 이미지만 골라 저장할 수 있고, 여러 장은 ZIP으로도 받을 수 있습니다. 해당 조합을 채우지 않은 참여자는 결과표에서 빠집니다."],
       ["2026.10.18", "내맘대로 (중복X) 탭이 추가되었습니다. 같은 캐릭터·스킨·이격은 한 번만 고를 수 있으며, 이격은 '다른 모습'으로 함께 넣을 수 있습니다. 종합 탭에서 중복O / 중복X 중 넣을 것을 고를 수 있습니다."],
       ["2026.10.18", "모아보기에서 참여자의 닉네임과 하트 색상을 변경할 수 있게 업데이트되었습니다."],
       ["2026.10.18", "모아보기에서 참여자의 순서를 재정렬할 수 있게 업데이트되었습니다."]
@@ -64,6 +66,7 @@ window.PNC_I18N = {
   en: {
     gameTitle: "GIRLS' FRONTLINE //:_ NEURAL CLOUD",
     siteTitle: "Favorite Picks",
+    saveImages: "Save", saveTitle: "Choose images to save", saveZip: "Download as ZIP", savePickOne: "Pick at least one image.", roomNothing: "No one has filled this in", roomAllEmpty: "No one has filled in this combination yet", memberEmpty: "Left out: nothing filled in for this combination", memberEmptyTag: "Empty", blankHint: "If there's no character you like, it's fine to leave a slot empty.",
     notice: [
       "A site for picking your favorite playable characters from Girls' Frontline: Neural Cloud.",
       "Built around playable characters only; NPCs are unlikely to be added later.",
@@ -79,6 +82,7 @@ window.PNC_I18N = {
       "We hope you enjoy it. Thank you."
     ],
     updates: [
+      ["2026.10.18", "Group View saving is now one [Save] button: pick the images you want, and get several at once as a ZIP. Members who left a combination empty are left out of that chart."],
       ["2026.10.18", "Added the Free 8 (no dupes) tab: each character (incl. skins and alternate forms) can be picked once; alternate forms can be added via 'other forms'. In All-in-One you can choose which Free 8 to include."],
       ["2026.10.18", "You can now edit each member's nickname and heart color in Group View."],
       ["2026.10.18", "You can now reorder members in Group View."]
@@ -121,6 +125,7 @@ window.PNC_I18N = {
   zh: {
     gameTitle: "少女前线: 云图计划",
     siteTitle: "本命选择",
+    saveImages: "保存", saveTitle: "选择要保存的图片", saveZip: "打包为 ZIP 下载", savePickOne: "请至少选择一张图片。", roomNothing: "没有人填写", roomAllEmpty: "还没有人填写这个组合", memberEmpty: "该组合没有填写，已从结果表中省略", memberEmptyTag: "未填写", blankHint: "如果没有喜欢的角色，空着也没关系。",
     notice: [
       "这是一个整理《少女前线: 云图计划》可操作角色本命的网站。",
       "以可操作角色为准制作，之后追加 NPC 等的可能性很低。",
@@ -136,6 +141,7 @@ window.PNC_I18N = {
       "希望大家玩得开心。谢谢。"
     ],
     updates: [
+      ["2026.10.18", "汇总保存合并为一个[保存]按钮：可只选需要的图片，多张也可打包为 ZIP。未填写该组合的参与者会从结果表中省略。"],
       ["2026.10.18", "新增「自选 8 人（不重复）」：同一角色（含皮肤、异格）只能选一次，异格可通过“其他形态”一起放入。综合页可选择放入哪一种自选。"],
       ["2026.10.18", "汇总中可以修改参与者的昵称和爱心颜色。"],
       ["2026.10.18", "汇总中可以调整参与者的顺序。"]
@@ -178,6 +184,7 @@ window.PNC_I18N = {
   ja: {
     gameTitle: "ドールズフロントライン: ニューラルクラウド",
     siteTitle: "推しピック",
+    saveImages: "保存", saveTitle: "保存する画像を選ぶ", saveZip: "ZIP でダウンロード", savePickOne: "画像を1枚以上選んでください。", roomNothing: "入力した人がいません", roomAllEmpty: "この組み合わせを入力した人はまだいません", memberEmpty: "この組み合わせは未入力のため結果表から外れます", memberEmptyTag: "未入力", blankHint: "推しがいなければ、空欄のままでも大丈夫です。",
     notice: [
       "ドールズフロントライン: ニューラルクラウドのプレイアブルキャラクターの推しをまとめられるサイトです。",
       "プレイアブルキャラクターを前提に制作しており、今後 NPC などが追加される可能性は低いです。",
@@ -193,6 +200,7 @@ window.PNC_I18N = {
       "楽しんでいただけたら嬉しいです。ありがとうございます。"
     ],
     updates: [
+      ["2026.10.18", "まとめの保存を[保存]ひとつにまとめました。必要な画像だけ選べ、複数枚は ZIP でも受け取れます。その組み合わせが未入力の参加者は結果表から外れます。"],
       ["2026.10.18", "「自由編成 8人（重複なし）」タブを追加しました。同じキャラ（スキン・別形態含む）は一度だけ選べ、別形態は「他の姿」で一緒に入れられます。総合タブでどちらを入れるか選べます。"],
       ["2026.10.18", "まとめで参加者のニックネームとハートの色を変更できるようになりました。"],
       ["2026.10.18", "まとめで参加者の順番を並べ替えられるようになりました。"]

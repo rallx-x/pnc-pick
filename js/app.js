@@ -359,7 +359,10 @@ function layoutSingle(tab, forExport) {
   const width = Math.max(760, ...sections.map(s => s.right));
   // 칸이 적은 덩어리(직군별 5칸 등)는 가운데 정렬
   sections.forEach(sec => { const dx = (width - sec.right) / 2; sec.cells.forEach(c => { c.cx += dx; }); });
-  return { tab, width, height: y + L1.footer + L1.pad / 2, sections, cells: sections.flatMap(s => s.cells) };
+  // 화면에서만 보이는 안내 한 줄 (저장 이미지에는 안 나와요)
+  const hintY = forExport ? 0 : y + 30;
+  if (!forExport) y += 44;
+  return { tab, width, height: y + L1.footer + L1.pad / 2, sections, cells: sections.flatMap(s => s.cells), hintY };
 }
 
 function slotHeader(tab, i, pick) {
@@ -463,6 +466,10 @@ function drawSingle(ctx, L, hover) {
   drawBackground(ctx, L.width, L.height);
   drawHeader(ctx, L.width, T().chartTitle[L.tab]);
   L.sections.forEach(sec => drawSection(ctx, sec, hover, L.width, L.tab === "total"));
+  if (L.hintY) {
+    setFont(ctx, 24, false); ctx.textAlign = "center"; ctx.fillStyle = th().sub;
+    ctx.fillText(T().blankHint, L.width / 2, L.hintY);
+  }
   drawFooter(ctx, L.width, L.height - L1.pad / 2 - 4, L1.pad);
 }
 
@@ -536,18 +543,19 @@ function drawRoom(ctx, L, members) {
   ctx.beginPath(); ctx.moveTo(L2.pad, L.top - 6); ctx.lineTo(L.width - L2.pad, L.top - 6); ctx.stroke();
   if (!members.length) {
     setFont(ctx, 24, false); ctx.fillStyle = t.sub; ctx.textAlign = "center";
-    ctx.fillText(T().roomEmpty.split(".")[0].split("。")[0], L.width / 2, L.top + L.blockH / 2);
+    const msg = S.room.members.length ? T().roomAllEmpty : T().roomEmpty.split(".")[0].split("。")[0];
+    ctx.fillText(msg, L.width / 2, L.top + L.blockH / 2);
   }
   members.forEach((m, r) => {
     const by = L.top + r * L.blockH + 8;
     // 닉네임: 블록 세로 가운데
     const midY = by + (L.blockH - 18) / 2;
-    setFont(ctx, 24, true); ctx.textAlign = "left"; ctx.fillStyle = r === 0 ? ACCENT : t.text;
+    setFont(ctx, 24, true); ctx.textAlign = "left"; ctx.fillStyle = m.idx === 0 ? ACCENT : t.text;
     const nm = fitText(ctx, m.n || T().nobody, L2.label - 60);
     ctx.fillText(nm, L2.pad, midY + 8);
     if (m.heart && heartOf(m.heart)) drawHeartIcon(ctx, heartOf(m.heart).e, L2.pad + ctx.measureText(nm).width + 22, midY, 24);
     let y = by;
-    const blank = blankColor("m:" + r, m.heart, [m.company, m.free, m.uniq]);
+    const blank = blankColor("m:" + m.idx, m.heart, [m.company, m.free, m.uniq]);
     if (L.showTop) { drawRoomRow(ctx, m.a, L.colX, y + L2.H / 2, blank); y += L.rowH; }
     if (L.showCls) {
       const cy = y + L2.H / 2;
@@ -687,10 +695,14 @@ function roomMembers() {
   }).filter(Boolean);
 }
 const roomCombo = () => (COMBOS[S.room.combo] ? S.room.combo : "cc");
+// 지금 조합에서 그 이미지에 들어갈 칸이 전부 빈 사람은 빼요 (part: all = 위+직군, top = 위 줄, class = 직군)
+const rowFilled = row => (row || []).some(Boolean);
+const memberFilled = (m, part) => part === "top" ? rowFilled(m.a) : part === "class" ? rowFilled(m.b) : rowFilled(m.a) || rowFilled(m.b);
+const filledMembers = part => roomMembers().filter(m => memberFilled(m, part));
 function render() {
   renderQueued = false;
   if (S.tab === "room") {
-    const ms = roomMembers();
+    const ms = filledMembers("all");
     const L = layoutRoom(roomCombo(), ms);
     drawRoom(fitCanvas(roomCanvas, L), L, ms);
   } else {
@@ -972,6 +984,7 @@ function renderMembers() {
     const i = m.idx;
     const li = document.createElement("li");
     if (i === editIdx) li.className = "on";
+    if (!memberFilled(m, "all")) { li.classList.add("empty"); li.title = T().memberEmpty; }
     const nm = document.createElement("button"); nm.type = "button"; nm.className = "who"; nm.title = T().memberEdit;
     nm.textContent = chipLabel(m.n, m.heart);
     nm.addEventListener("click", () => { editIdx = editIdx === i ? -1 : i; renderMembers(); });
@@ -982,10 +995,11 @@ function renderMembers() {
       persist(); renderMembers(); refresh();
     });
     li.dataset.idx = i;
-    if (i === 0) { li.classList.add("host"); li.append(nm, x); return li; }   // 방장(맨 앞)은 고정
+    const tag = li.classList.contains("empty") ? Object.assign(document.createElement("span"), { className: "tag", textContent: T().memberEmptyTag }) : null;
+    if (i === 0) { li.classList.add("host"); li.append(...[nm, tag, x].filter(Boolean)); return li; }   // 방장(맨 앞)은 고정
     const g = document.createElement("span"); g.className = "grip"; g.textContent = "⠿"; g.title = T().dragHint;
     g.addEventListener("pointerdown", e => startDrag(e, li, i));
-    li.append(g, nm, x); return li;
+    li.append(...[g, nm, tag, x].filter(Boolean)); return li;
   }));
   $("roomNameInput").value = S.room.name;
   renderMemberEdit();
@@ -1066,19 +1080,17 @@ function addCodes(text) {
 /* =====================================================================
    PNG 저장
    ===================================================================== */
-async function savePNG(kind) {
-  await ensureFonts();
-  const EXPORT = 1.5;
+const EXPORT = 1.5;
+const safeName = s => s.replace(/[\\/:*?"<>|\s]+/g, "_");
+const toBlob = c => new Promise(res => c.toBlob(res, "image/png"));
+// 이미지 한 장 만들기 → { name, blob } (빈 사람만 있으면 null)
+async function renderImage(kind) {
   const c = document.createElement("canvas"), ctx = c.getContext("2d");
   let L, name;
-  if (kind === "roomSplit") {          // 분류별 2장: 위 줄(기업별/8인) + 직군별
-    await savePNG("room:top");
-    setTimeout(() => savePNG("room:class"), 600);
-    return;
-  }
   if (kind.startsWith("room")) {
-    const ms = roomMembers(); const combo = roomCombo();
-    const part = kind.split(":")[1] || "all";
+    const combo = roomCombo(), part = kind.split(":")[1] || "all";
+    const ms = filledMembers(part);
+    if (!ms.length) return null;
     L = layoutRoom(combo, ms, part);
     c.width = Math.round(L.width * EXPORT); c.height = Math.round(L.height * EXPORT);
     ctx.scale(EXPORT, EXPORT); drawRoom(ctx, L, ms);
@@ -1089,16 +1101,83 @@ async function savePNG(kind) {
     ctx.scale(EXPORT, EXPORT); drawSingle(ctx, L, null);
     name = `pnc_${S.tab}_${S.nick.trim() || "pick"}`;
   }
-  c.toBlob(blob => {
-    if (!blob) return;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name.replace(/[\\/:*?"<>|\s]+/g, "_") + ".png";
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    toast(T().saved);
-  }, "image/png");
+  const blob = await toBlob(c);
+  return blob ? { name: safeName(name) + ".png", blob } : null;
 }
+function download(blob, filename) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function savePNG(kind) {
+  await ensureFonts();
+  const f = await renderImage(kind);
+  if (!f) { toast(T().roomNothing); return; }
+  download(f.blob, f.name); toast(T().saved);
+}
+
+/* ---------- ZIP (압축 없이 묶기만, 외부 도구 없이) ---------- */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = u8 => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+async function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  const d = new Date(), dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1),
+        dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  for (const f of files) {
+    const data = new Uint8Array(await f.blob.arrayBuffer()), nm = enc.encode(f.name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, dosTime, true); h.setUint16(12, dosDate, true); h.setUint32(14, crc, true);
+    h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+    parts.push(h, nm, data);
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0x0800, true); cd.setUint16(10, 0, true);
+    cd.setUint16(12, dosTime, true); cd.setUint16(14, dosDate, true); cd.setUint32(16, crc, true);
+    cd.setUint32(20, data.length, true); cd.setUint32(24, data.length, true); cd.setUint16(28, nm.length, true);
+    cd.setUint32(42, offset, true);
+    central.push(cd, nm);
+    offset += 30 + nm.length + data.length;
+  }
+  const cdSize = central.reduce((s, p) => s + p.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end], { type: "application/zip" });
+}
+
+/* ---------- 모아보기 저장 창 ---------- */
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function openSaveDlg() {
+  const t = T(), combo = roomCombo(), top = T().chartTitle[COMBOS[combo]], cls = T().chartTitle.class;
+  const opts = [["all", `${t.saveOne} (${top} + ${cls})`], ["top", top], ["class", cls]];
+  $("saveOpts").replaceChildren(...opts.map(([k, label], i) => {
+    const lab = document.createElement("label"); lab.className = "toggle";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.value = k; cb.checked = i === 0;
+    const n = filledMembers(k).length;
+    const sp = document.createElement("span"); sp.textContent = label + (n ? "" : ` — ${t.roomNothing}`);
+    if (!n) { cb.checked = false; cb.disabled = true; }
+    lab.append(cb, sp); return lab;
+  }));
+  $("zipRow").hidden = isMobile();
+  $("zipChk").checked = false;
+  $("saveDlg").hidden = false;
+}
+const closeSaveDlg = () => { $("saveDlg").hidden = true; };
+async function doSave() {
+  const kinds = [...$("saveOpts").querySelectorAll("input:checked")].map(x => "room:" + x.value);
+  if (!kinds.length) { toast(t_("savePickOne")); return; }
+  closeSaveDlg();
+  await ensureFonts();
+  const files = (await Promise.all(kinds.map(renderImage))).filter(Boolean);
+  if (!files.length) { toast(T().roomNothing); return; }
+  const zip = files.length > 1 && (isMobile() || $("zipChk").checked);
+  if (zip) download(await makeZip(files), `pnc_room_${COMBOS[roomCombo()]}_${new Date().toISOString().slice(0, 10)}.zip`);   // zip 이름은 영어로 (한글이면 일부 브라우저가 이름을 무시해요)
+  else files.forEach((f, i) => setTimeout(() => download(f.blob, f.name), i * 500));
+  toast(T().saved);
+}
+const t_ = k => T()[k] || I18N.ko[k];
 
 /* =====================================================================
    이벤트
@@ -1155,8 +1234,11 @@ $("nickInput").addEventListener("input", e => { S.nick = e.target.value; persist
 $("roomNameInput").addEventListener("input", e => { S.room.name = e.target.value; persist(); refresh(); });
 
 $("saveBtn").addEventListener("click", () => savePNG("single"));
-$("roomSaveBtn").addEventListener("click", () => savePNG("room"));
-$("roomSplitBtn").addEventListener("click", () => savePNG("roomSplit"));
+$("roomSaveBtn").addEventListener("click", openSaveDlg);
+$("saveDo").addEventListener("click", doSave);
+$("saveClose").addEventListener("click", closeSaveDlg);
+$("saveDlg").addEventListener("click", e => { if (e.target.id === "saveDlg") closeSaveDlg(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("saveDlg").hidden) closeSaveDlg(); });
 $("codeBtn").addEventListener("click", () => { $("codeOut").value = makeCode(); $("codeBox").hidden = false; $("codeOut").select(); });
 // 모아보기 조합 고르기
 const applyCombo = () => {

@@ -92,8 +92,7 @@
     <div class="member-edit" id="memberEdit" hidden></div>
     <div class="stage"><canvas id="roomCanvas"></canvas></div>
     <div class="actions">
-      <button class="btn primary" id="roomSaveBtn" data-t="saveOne"></button>
-      <button class="btn" id="roomSplitBtn" data-t="saveSplit"></button>
+      <button class="btn primary" id="roomSaveBtn" data-t="saveImages"></button>
     </div>
   </section>
 </main>
@@ -120,6 +119,21 @@
     </div>
     <div class="sheet-foot plain">
       <button class="btn ghost" id="clearSlot" data-t="clear"></button>
+    </div>
+  </div>
+</div>
+
+<!-- 모아보기 저장 창 -->
+<div class="modal" id="saveDlg" hidden>
+  <div class="sheet save-sheet" role="dialog" aria-modal="true" aria-labelledby="saveTitle">
+    <div class="sheet-head">
+      <h2 id="saveTitle" data-t="saveTitle"></h2>
+      <button class="icon" id="saveClose" type="button" aria-label="close">✕</button>
+    </div>
+    <div class="save-opts" id="saveOpts"></div>
+    <div class="sheet-foot">
+      <label class="toggle" id="zipRow"><input type="checkbox" id="zipChk"><span data-t="saveZip"></span></label>
+      <button class="btn primary" id="saveDo" type="button" data-t="save"></button>
     </div>
   </div>
 </div>
