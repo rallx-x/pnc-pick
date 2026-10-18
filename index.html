@@ -33,6 +33,7 @@
   <button role="tab" data-tab="company"></button>
   <button role="tab" data-tab="class"></button>
   <button role="tab" data-tab="free"></button>
+  <button role="tab" data-tab="uniq"></button>
   <button role="tab" data-tab="total"></button>
   <button role="tab" data-tab="room" class="room-tab"></button>
 </nav>
@@ -44,6 +45,13 @@
       <label class="field grow"><span data-t="nickname"></span>
         <input id="nickInput" maxlength="20" autocomplete="off">
       </label>
+    </div>
+    <div class="tf-row" id="totalFree" hidden>
+      <span data-t="totalFreeLabel"></span>
+      <div class="combo" role="group">
+        <button type="button" class="seg" id="tf_free" data-t="tabFree"></button>
+        <button type="button" class="seg" id="tf_uniq" data-t="tabUniq"></button>
+      </div>
     </div>
     <div class="stage"><canvas id="singleCanvas"></canvas></div>
     <div class="actions">
@@ -78,6 +86,7 @@
     <div class="combo" role="group">
       <button type="button" class="seg" id="comboCC" data-t="comboCC"></button>
       <button type="button" class="seg" id="comboFC" data-t="comboFC"></button>
+      <button type="button" class="seg" id="comboUC" data-t="comboUC"></button>
     </div>
     <ul class="members" id="memberList"></ul>
     <div class="member-edit" id="memberEdit" hidden></div>

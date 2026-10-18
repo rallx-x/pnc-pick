@@ -11,9 +11,15 @@ const CLASSES = ["guard", "sniper", "warrior", "specialist", "medic"];
 const TABS = {
   company: { code: "c", slots: [...COMPANIES, "joker"] },   // 8번째 = 조커픽 (모든 기업 + 콜라보)
   class:   { code: "k", slots: CLASSES },
-  free:    { code: "f", slots: Array(8).fill("free") },
-  total:   { sections: ["company", "class", "free"] }
+  free:    { code: "f", slots: Array(8).fill("free") },   // 내맘대로 (중복O)
+  uniq:    { code: "u", slots: Array(8).fill("free") },   // 내맘대로 (중복X): 같은 캐릭터·스킨·이격 한 번만
+  total:   { sections: ["company", "class", "free", "uniq"] }
 };
+const FREE_TABS = ["free", "uniq"];
+const isFreeTab = t => FREE_TABS.includes(t);
+// 종합 탭에 넣을 내맘대로 (중복O / 중복X 중 하나 또는 둘 다)
+const totalFrees = () => { const v = (S.totalFree || ["free"]).filter(isFreeTab); return v.length ? v : ["free"]; };
+const totalSections = () => ["company", "class", ...FREE_TABS.filter(t => totalFrees().includes(t))];
 // 조커칸 히든픽 하트 (id, 이모지, 칸 색)
 const HEARTS = [
   ["red", "❤️", "#d9434b"], ["pink", "🩷", "#e68aac"], ["orange", "🧡", "#e8843a"], ["yellow", "💛", "#e2bf3c"],
@@ -22,7 +28,7 @@ const HEARTS = [
 ].map(([id, e, c]) => ({ id: "h:" + id, e, c }));
 const heartOf = id => HEARTS.find(h => h.id === id);
 const validPick = id => !!byImg[id];
-const TAB_BY_CODE = { c: "company", k: "class", f: "free" };
+const TAB_BY_CODE = { c: "company", k: "class", f: "free", u: "uniq" };
 const CREDIT = { ko: "제작", en: "Made by", zh: "制作", ja: "制作" };
 const FONT = '"PNC Pixel", "PNC Pixel Emoji", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
 
@@ -36,7 +42,7 @@ const imgOf = c => (!c.variants ? c.id : c.id === "sueyoi" ? SUE_NOW : c.variant
 
 /* ---------- 저장 상태 ---------- */
 const KEY = "pnc-pick-v1";
-const blankPicks = () => ({ company: Array(8).fill(null), class: Array(5).fill(null), free: Array(8).fill(null) });
+const blankPicks = () => ({ company: Array(8).fill(null), class: Array(5).fill(null), free: Array(8).fill(null), uniq: Array(8).fill(null) });
 const guessLang = () => {
   const l = (navigator.language || "ko").toLowerCase();
   return l.startsWith("ja") ? "ja" : l.startsWith("zh") ? "zh" : l.startsWith("ko") ? "ko" : "en";
@@ -118,7 +124,7 @@ function blankColor(key, heartId, groups) {
   }
   return (heartOf(heartId) || HEARTS[0]).c;
 }
-const myBlank = () => blankColor("me", S.heart, [S.picks.company, S.picks.free]);
+const myBlank = () => blankColor("me", S.heart, [S.picks.company, S.picks.free, S.picks.uniq]);
 const tintedBlank = {};
 function blankImg(col) {
   const base = img(blankSrc);
@@ -330,7 +336,7 @@ function layoutSection(tab, top, forExport) {
     if (!k) return;
     if (i % 2) up = Math.max(up, k); else down = Math.max(down, k);
   });
-  const headH = tab === "free" ? 0 : (tab === "class" ? 84 : L1.logo) + L1.logoGap;
+  const headH = isFreeTab(tab) ? 0 : (tab === "class" ? 84 : L1.logo) + L1.logoGap;
   const stripTop = top + headH + (up ? (up - 0.5) * L1.H : 0);
   const x0 = L1.pad + L1.W / 2;
   const cells = Array.from({ length: n }, (_, i) => ({
@@ -344,7 +350,7 @@ function layoutSection(tab, top, forExport) {
 function layoutSingle(tab, forExport) {
   const sections = [];
   let y = L1.pad + L1.titleH;
-  const tabs = tab === "total" ? TABS.total.sections : [tab];
+  const tabs = tab === "total" ? totalSections() : [tab];
   tabs.forEach((tb, k) => {
     if (tab === "total") { if (k) y += L1.secGap; y += L1.secLabel; }
     const sec = layoutSection(tb, y, forExport);
@@ -467,7 +473,7 @@ const L2 = { pad: 48, W: 96, gap: 12, label: 220, head: 70, footer: 64, icon: 30
 L2.H = L2.W * 2 / R3;
 L2.pitch = L2.W + L2.gap;
 // 조합: cc = 기업별 + 직군별, fc = 내맘대로 8인 + 직군별
-const COMBOS = { cc: "company", fc: "free" };
+const COMBOS = { cc: "company", fc: "free", uc: "uniq" };
 
 // part: "all" = 한 장 / "top" = 위 줄(기업별·8인)만 / "class" = 직군별만
 function layoutRoom(combo, members, part = "all") {
@@ -541,7 +547,7 @@ function drawRoom(ctx, L, members) {
     ctx.fillText(nm, L2.pad, midY + 8);
     if (m.heart && heartOf(m.heart)) drawHeartIcon(ctx, heartOf(m.heart).e, L2.pad + ctx.measureText(nm).width + 22, midY, 24);
     let y = by;
-    const blank = blankColor("m:" + r, m.heart, [m.company, m.free]);
+    const blank = blankColor("m:" + r, m.heart, [m.company, m.free, m.uniq]);
     if (L.showTop) { drawRoomRow(ctx, m.a, L.colX, y + L2.H / 2, blank); y += L.rowH; }
     if (L.showCls) {
       const cy = y + L2.H / 2;
@@ -612,10 +618,12 @@ function unpackShort(code) {
     return { img, extra: ex };
   });
   const company = read(8), cls = read(5), free = read(8);
-  return { n: nickPart ? b64dec(nickPart).slice(0, 20) : "", company, cls, free, heart: hi ? (HEARTS[hi - 1] || {}).id || null : null };
+  // 중복X 8칸은 나중에 붙인 거라, 예전 코드에는 없어요 (그땐 빈칸)
+  let uniq; try { uniq = read(8); } catch (e) { uniq = Array(8).fill(null); }
+  return { n: nickPart ? b64dec(nickPart).slice(0, 20) : "", company, cls, free, uniq, heart: hi ? (HEARTS[hi - 1] || {}).id || null : null };
 }
 function makeCode() {
-  return packShort([S.picks.company, S.picks.class, S.picks.free], S.nick.trim(), S.heart);
+  return packShort([S.picks.company, S.picks.class, S.picks.free, S.picks.uniq], S.nick.trim(), S.heart);
 }
 function makeCodeLong() {
   const o = { n: S.nick.trim(), c: packPicks(S.picks.company), k: packPicks(S.picks.class), f: packPicks(S.picks.free) };
@@ -675,10 +683,10 @@ function roomMembers() {
     const e = meta[i] || {};
     // 모아보기에서 고친 닉네임·하트가 있으면 그걸 우선 (코드 자체는 안 바뀜)
     return { ...m, idx: i, n: e.n !== undefined ? e.n : m.n, heart: e.h !== undefined ? e.h : m.heart,
-             a: combo === "cc" ? m.company : m.free, b: m.cls };
+             uniq: m.uniq || Array(8).fill(null), a: m[COMBOS[combo]] || Array(8).fill(null), b: m.cls };
   }).filter(Boolean);
 }
-const roomCombo = () => (S.room.combo === "fc" ? "fc" : "cc");
+const roomCombo = () => (COMBOS[S.room.combo] ? S.room.combo : "cc");
 function render() {
   renderQueued = false;
   if (S.tab === "room") {
@@ -696,7 +704,7 @@ function queueRender() {
   requestAnimationFrame(render);
 }
 function textForFonts() {
-  const parts = [T().chartHead, T().chartTitle.company, T().chartTitle.class, T().chartTitle.free, S.nick, S.room.name, CFG.copyright];
+  const parts = [T().chartHead, T().chartTitle.company, T().chartTitle.class, T().chartTitle.free, T().chartTitle.uniq, S.nick, S.room.name, CFG.copyright];
   Object.values(S.picks).flat().forEach(p => p && parts.push(charName(byImg[p.img])));
   roomMembers().forEach(m => { parts.push(m.n); [...m.a, ...m.b].forEach(p => p && byImg[p.img] && parts.push(charName(byImg[p.img]))); });
   return parts.join("") + "PROJECT.NEURAL.CLOUD?JOKER0123456789";
@@ -759,6 +767,8 @@ function applyTab() {
   $("roomView").hidden = S.tab !== "room";
   $("codeBox").hidden = true;
   $("codeBtn").hidden = S.tab !== "total";   // 공유 코드는 종합 탭에서만
+  $("totalFree").hidden = S.tab !== "total";
+  FREE_TABS.forEach(k => $("tf_" + k).setAttribute("aria-pressed", String(totalFrees().includes(k))));
   if (S.tab === "room" && typeof applyCombo === "function") applyCombo();
   if (S.tab === "room") renderMembers();
 }
@@ -805,19 +815,31 @@ function candidates(tab, i) {
     return true;
   });
 }
+// 중복X: 같은 사람 = 같은 캐릭터(스킨 무관) + 이격 묶음. 솔/지옥불 솔처럼 묶음이 없으면 각자 다른 사람
+const personKey = c => c ? (c.family || c.id) : null;
+function usedPeople(tab, except) {
+  const used = new Set();
+  if (tab !== "uniq") return used;
+  S.picks.uniq.forEach((pk, i) => {
+    if (!pk || i === except) return;
+    [pk.img, ...(pk.extra || [])].forEach(id => { const k = personKey(byImg[id] || byId[id]); if (k) used.add(k); });
+  });
+  return used;
+}
 function familyOthers(c) {
   if (!c.family) return [];
   return CHARS.filter(o => o.family === c.family && o.id !== c.id && visible(o));
 }
-function cardEl(c, selected) {
+function cardEl(c, selected, taken) {
   const b = document.createElement("button");
-  b.type = "button"; b.className = "card" + (selected ? " sel" : "") + (c.hidden ? " hidden-char" : "");
+  b.type = "button"; b.className = "card" + (selected ? " sel" : "") + (c.hidden ? " hidden-char" : "") + (taken ? " taken" : "");
+  if (taken) { b.disabled = true; b.title = T().takenNote; }
   const hex = document.createElement("div"); hex.className = "hex";
   const im = document.createElement("img"); im.loading = "lazy"; im.alt = ""; im.src = portraitSrc(imgOf(c));
   hex.append(im);
   const sp = document.createElement("span"); sp.textContent = charName(c);
   b.append(hex, sp);
-  b.addEventListener("click", () => choose(c));
+  if (!taken) b.addEventListener("click", () => choose(c));
   return b;
 }
 function renderHearts() {
@@ -847,7 +869,8 @@ function renderGrid() {
   const list = candidates(pickTab, pickSlot).filter(c => matches(c, q));
   grid.replaceChildren();
   if (!list.length) { const p = document.createElement("p"); p.className = "empty-msg"; p.textContent = T().noResult; grid.append(p); return; }
-  const groupBy = pickTab === "free" || TABS[pickTab].slots[pickSlot] === "joker";
+  const groupBy = isFreeTab(pickTab) || TABS[pickTab].slots[pickSlot] === "joker";
+  const used = usedPeople(pickTab, pickSlot);
   const groups = groupBy ? [...COMPANIES, "collab"].map(k => [k, list.filter(c => c.company === k)]).filter(g => g[1].length) : [[null, list]];
   groups.forEach(([k, cs]) => {
     if (k) {
@@ -860,7 +883,7 @@ function renderGrid() {
       const n = document.createElement("p"); n.className = "note"; n.textContent = T().collabNote; grid.append(n);
     }
     const wrap = document.createElement("div"); wrap.className = "cards";
-    cs.forEach(c => wrap.append(cardEl(c, cur && byImg[cur.img] === c)));
+    cs.forEach(c => wrap.append(cardEl(c, cur && byImg[cur.img] === c, used.has(personKey(c)))));
     grid.append(wrap);
   });
 }
@@ -1137,9 +1160,16 @@ $("roomSplitBtn").addEventListener("click", () => savePNG("roomSplit"));
 $("codeBtn").addEventListener("click", () => { $("codeOut").value = makeCode(); $("codeBox").hidden = false; $("codeOut").select(); });
 // 모아보기 조합 고르기
 const applyCombo = () => {
-  ["cc", "fc"].forEach(k => $("combo" + k.toUpperCase()).setAttribute("aria-pressed", String(roomCombo() === k)));
+  Object.keys(COMBOS).forEach(k => $("combo" + k.toUpperCase()).setAttribute("aria-pressed", String(roomCombo() === k)));
 };
-["cc", "fc"].forEach(k => $("combo" + k.toUpperCase()).addEventListener("click", () => {
+// 종합 탭: 내맘대로 중복O / 중복X 넣기 (하나 이상은 꼭 켜져 있어야 함)
+FREE_TABS.forEach(k => $("tf_" + k).addEventListener("click", () => {
+  const cur = totalFrees();
+  const next = cur.includes(k) ? cur.filter(x => x !== k) : [...cur, k];
+  if (!next.length) return;
+  S.totalFree = next; persist(); applyTab(); refresh();
+}));
+Object.keys(COMBOS).forEach(k => $("combo" + k.toUpperCase()).addEventListener("click", () => {
   S.room.combo = k; persist(); applyCombo(); refresh();
 }));
 $("copyBtn").addEventListener("click", () => {
