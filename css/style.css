@@ -116,6 +116,8 @@ main { max-width: 1200px; margin: 0 auto; padding-top: 16px; }
 .seg { background: var(--panel); border: 0; padding: 7px 14px; cursor: pointer; font-size: 14px; color: var(--sub); }
 .seg + .seg { border-left: 1px solid var(--line); }
 .seg[aria-pressed="true"] { background: var(--accent); color: #1b1408; font-weight: 700; }
+.sel-rows { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -4px 0 12px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.sel-rows .toggle { padding: 0; color: var(--text); }
 .tf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; font-size: 12px; color: var(--sub); }
 .tf-row .combo { margin: 0; }
 .members { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px; }

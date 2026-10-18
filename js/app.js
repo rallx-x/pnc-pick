@@ -479,17 +479,21 @@ function drawSingle(ctx, L, hover) {
 const L2 = { pad: 48, W: 96, gap: 12, label: 220, head: 70, footer: 64, icon: 30 };  // 다인은 이격 표시 없음
 L2.H = L2.W * 2 / R3;
 L2.pitch = L2.W + L2.gap;
-// 조합: cc = 기업별 + 직군별, fc = 내맘대로 8인 + 직군별
+// 조합: cc = 기업별 + 직군별, fc = 중복O + 직군별, uc = 중복X + 직군별, sel = 직접 고르기
 const COMBOS = { cc: "company", fc: "free", uc: "uniq" };
+const ROW_ORDER = ["company", "free", "uniq", "class"];          // [선택]일 때 줄 순서 (고정)
+const selRows = () => { const v = ROW_ORDER.filter(r => (S.room.sel || ["company", "free", "class"]).includes(r)); return v.length ? v : ["company", "class"]; };
+const comboRows = (combo = roomCombo()) => combo === "sel" ? selRows() : [COMBOS[combo] || "company", "class"];
+const rowOf = (m, row) => (row === "class" ? m.cls : m[row]) || Array(row === "class" ? 5 : 8).fill(null);
 
-// part: "all" = 한 장 / "top" = 위 줄(기업별·8인)만 / "class" = 직군별만
+// part: "all" = 고른 줄 전부 한 장 / 줄 이름(company, free, uniq, class) = 그 줄만
 function layoutRoom(combo, members, part = "all") {
-  const topTab = COMBOS[combo] || "company";
-  const showTop = part !== "class", showCls = part !== "top";
+  const rows = part === "all" ? comboRows(combo) : [part];
   const titleH = 104;
   const rowH = L2.H + (S.names ? 26 : 0) + 10;
-  const blockH = (showTop ? rowH : 0) + (showCls ? rowH : 0) + 18;
-  const head = showTop ? L2.head : 8;
+  const blockH = rows.length * rowH + 18;
+  const headRow = rows.find(r => r !== "class");                // 맨 위 머리글은 첫 8칸 줄 기준
+  const head = headRow ? L2.head : 8;
   const top = L2.pad + titleH + head;
   const span = 7 * L2.pitch + L2.W;
   const width = L2.pad * 2 + L2.label + span + 24;
@@ -497,8 +501,9 @@ function layoutRoom(combo, members, part = "all") {
   // 직군 줄: 칸 왼쪽에 직군 아이콘, 위 줄 폭 안에서 가운데 정렬
   const unit = L2.icon + 6 + L2.W, cgap = 18, ctotal = 5 * unit + 4 * cgap;
   const cstart = x0 + (span - ctotal) / 2;
+  const eightRows = rows.filter(r => r !== "class").length;
   return {
-    combo, topTab, part, showTop, showCls, width, top, rowH, blockH, titleH, x0,
+    combo, part, rows, headRow, marks: eightRows >= 2, width, top, rowH, blockH, titleH, x0,
     colX: i => x0 + L2.W / 2 + i * L2.pitch,
     clsX: i => cstart + i * (unit + cgap) + L2.icon + 6 + L2.W / 2,
     clsIconX: i => cstart + i * (unit + cgap) + L2.icon / 2,
@@ -523,14 +528,12 @@ function drawRoom(ctx, L, members) {
   const title = S.room.name.trim() ? fmt(T().roomResult, { room: S.room.name.trim() }) : T().chartHead;
   ctx.fillText(fitText(ctx, title, L.width - L2.pad * 2), L.width / 2, L2.pad + 40);
   setFont(ctx, 24, false); ctx.fillStyle = t.sub;
-  const sub = L.part === "top" ? T().chartTitle[L.topTab] : L.part === "class" ? T().chartTitle.class
-    : `${T().chartTitle[L.topTab]} + ${T().chartTitle.class}`;
-  ctx.fillText(sub, L.width / 2, L2.pad + 78);
-  // 열 머리 (위 줄 기준, 고정)
-  if (L.showTop) {
+  ctx.fillText(fitText(ctx, L.rows.map(r => T().chartTitle[r]).join(" + "), L.width - L2.pad * 2), L.width / 2, L2.pad + 78);
+  // 열 머리 (첫 8칸 줄 기준, 고정)
+  if (L.headRow) {
     const y = L2.pad + L.titleH;
     for (let i = 0; i < 8; i++) {
-      if (L.topTab === "company") {
+      if (L.headRow === "company") {
         if (i < 7) drawLogo(ctx, COMPANIES[i], L.colX(i), y, 56);
         else drawHeartIcon(ctx, "⭐", L.colX(i), y + 28, 36);   // 조커픽 = 별
       } else {
@@ -554,14 +557,21 @@ function drawRoom(ctx, L, members) {
     const nm = fitText(ctx, m.n || T().nobody, L2.label - 60);
     ctx.fillText(nm, L2.pad, midY + 8);
     if (m.heart && heartOf(m.heart)) drawHeartIcon(ctx, heartOf(m.heart).e, L2.pad + ctx.measureText(nm).width + 22, midY, 24);
-    let y = by;
     const blank = blankColor("m:" + m.idx, m.heart, [m.company, m.free, m.uniq]);
-    if (L.showTop) { drawRoomRow(ctx, m.a, L.colX, y + L2.H / 2, blank); y += L.rowH; }
-    if (L.showCls) {
-      const cy = y + L2.H / 2;
-      CLASSES.forEach((k, i) => drawLogo(ctx, k, L.clsIconX(i), cy - L2.icon / 2, L2.icon));
-      drawRoomRow(ctx, m.b, L.clsX, cy, blank);
-    }
+    L.rows.forEach((row, k) => {
+      const cy = by + k * L.rowH + L2.H / 2;
+      if (row === "class") {
+        CLASSES.forEach((c, i) => drawLogo(ctx, c, L.clsIconX(i), cy - L2.icon / 2, L2.icon));
+        drawRoomRow(ctx, rowOf(m, row), L.clsX, cy, blank);
+        return;
+      }
+      // 8칸 줄이 여러 개면 줄 왼쪽에 작은 표시 (기업별은 맨 위 로고가 있어서 생략)
+      if (L.marks && row !== "company") {
+        setFont(ctx, 14, true); ctx.textAlign = "right"; ctx.fillStyle = ACCENT;
+        ctx.fillText(fitText(ctx, T().rowMark[row], 60), L.x0 - 8, cy + 6);
+      }
+      drawRoomRow(ctx, rowOf(m, row), L.colX, cy, blank);
+    });
     if (r < members.length - 1) {
       ctx.strokeStyle = t.line; ctx.lineWidth = 1;
       const ly = L.top + (r + 1) * L.blockH - 4;
@@ -683,7 +693,6 @@ function fitCanvas(canvas, L) {
   return ctx;
 }
 function roomMembers() {
-  const combo = roomCombo();
   const meta = S.room.meta || [];
   return S.room.members.map((code, i) => {
     const m = readCode(code);
@@ -691,13 +700,13 @@ function roomMembers() {
     const e = meta[i] || {};
     // 모아보기에서 고친 닉네임·하트가 있으면 그걸 우선 (코드 자체는 안 바뀜)
     return { ...m, idx: i, n: e.n !== undefined ? e.n : m.n, heart: e.h !== undefined ? e.h : m.heart,
-             uniq: m.uniq || Array(8).fill(null), a: m[COMBOS[combo]] || Array(8).fill(null), b: m.cls };
+             uniq: m.uniq || Array(8).fill(null) };
   }).filter(Boolean);
 }
-const roomCombo = () => (COMBOS[S.room.combo] ? S.room.combo : "cc");
+const roomCombo = () => (COMBOS[S.room.combo] || S.room.combo === "sel" ? S.room.combo : "cc");
 // 지금 조합에서 그 이미지에 들어갈 칸이 전부 빈 사람은 빼요 (part: all = 위+직군, top = 위 줄, class = 직군)
 const rowFilled = row => (row || []).some(Boolean);
-const memberFilled = (m, part) => part === "top" ? rowFilled(m.a) : part === "class" ? rowFilled(m.b) : rowFilled(m.a) || rowFilled(m.b);
+const memberFilled = (m, part) => (part === "all" ? comboRows() : [part]).some(r => rowFilled(rowOf(m, r)));
 const filledMembers = part => roomMembers().filter(m => memberFilled(m, part));
 function render() {
   renderQueued = false;
@@ -718,7 +727,7 @@ function queueRender() {
 function textForFonts() {
   const parts = [T().chartHead, T().chartTitle.company, T().chartTitle.class, T().chartTitle.free, T().chartTitle.uniq, S.nick, S.room.name, CFG.copyright];
   Object.values(S.picks).flat().forEach(p => p && parts.push(charName(byImg[p.img])));
-  roomMembers().forEach(m => { parts.push(m.n); [...m.a, ...m.b].forEach(p => p && byImg[p.img] && parts.push(charName(byImg[p.img]))); });
+  roomMembers().forEach(m => { parts.push(m.n); [...m.company, ...m.cls, ...m.free, ...m.uniq].forEach(p => p && byImg[p.img] && parts.push(charName(byImg[p.img]))); });
   return parts.join("") + "PROJECT.NEURAL.CLOUD?JOKER0123456789";
 }
 function ensureFonts() {
@@ -1094,7 +1103,7 @@ async function renderImage(kind) {
     L = layoutRoom(combo, ms, part);
     c.width = Math.round(L.width * EXPORT); c.height = Math.round(L.height * EXPORT);
     ctx.scale(EXPORT, EXPORT); drawRoom(ctx, L, ms);
-    name = `pnc_room_${S.room.name.trim() || combo}${part === "all" ? "" : "_" + (part === "top" ? COMBOS[combo] : "class")}`;
+    name = `pnc_room_${S.room.name.trim() || combo}${part === "all" ? "" : "_" + part}`;
   } else {
     L = layoutSingle(S.tab, true);
     c.width = Math.round(L.width * EXPORT); c.height = Math.round(L.height * EXPORT);
@@ -1150,8 +1159,8 @@ async function makeZip(files) {
 /* ---------- 모아보기 저장 창 ---------- */
 const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 function openSaveDlg() {
-  const t = T(), combo = roomCombo(), top = T().chartTitle[COMBOS[combo]], cls = T().chartTitle.class;
-  const opts = [["all", `${t.saveOne} (${top} + ${cls})`], ["top", top], ["class", cls]];
+  const t = T(), rows = comboRows();
+  const opts = [["all", `${t.saveOne} (${rows.map(r => t.chartTitle[r]).join(" + ")})`], ...rows.map(r => [r, t.chartTitle[r]])];
   $("saveOpts").replaceChildren(...opts.map(([k, label], i) => {
     const lab = document.createElement("label"); lab.className = "toggle";
     const cb = document.createElement("input"); cb.type = "checkbox"; cb.value = k; cb.checked = i === 0;
@@ -1173,7 +1182,7 @@ async function doSave() {
   const files = (await Promise.all(kinds.map(renderImage))).filter(Boolean);
   if (!files.length) { toast(T().roomNothing); return; }
   const zip = files.length > 1 && (isMobile() || $("zipChk").checked);
-  if (zip) download(await makeZip(files), `pnc_room_${COMBOS[roomCombo()]}_${new Date().toISOString().slice(0, 10)}.zip`);   // zip 이름은 영어로 (한글이면 일부 브라우저가 이름을 무시해요)
+  if (zip) download(await makeZip(files), `pnc_room_${roomCombo()}_${new Date().toISOString().slice(0, 10)}.zip`);   // zip 이름은 영어로 (한글이면 일부 브라우저가 이름을 무시해요)
   else files.forEach((f, i) => setTimeout(() => download(f.blob, f.name), i * 500));
   toast(T().saved);
 }
@@ -1241,9 +1250,18 @@ $("saveDlg").addEventListener("click", e => { if (e.target.id === "saveDlg") clo
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("saveDlg").hidden) closeSaveDlg(); });
 $("codeBtn").addEventListener("click", () => { $("codeOut").value = makeCode(); $("codeBox").hidden = false; $("codeOut").select(); });
 // 모아보기 조합 고르기
+const COMBO_KEYS = [...Object.keys(COMBOS), "sel"];
 const applyCombo = () => {
-  Object.keys(COMBOS).forEach(k => $("combo" + k.toUpperCase()).setAttribute("aria-pressed", String(roomCombo() === k)));
+  COMBO_KEYS.forEach(k => $("combo" + k.toUpperCase()).setAttribute("aria-pressed", String(roomCombo() === k)));
+  $("selRows").hidden = roomCombo() !== "sel";
+  ROW_ORDER.forEach(r => { $("sr_" + r).checked = selRows().includes(r); });
 };
+// [선택]: 보고 싶은 줄 고르기 (하나 이상)
+ROW_ORDER.forEach(r => $("sr_" + r).addEventListener("change", e => {
+  const next = ROW_ORDER.filter(x => x === r ? e.target.checked : selRows().includes(x));
+  if (!next.length) { e.target.checked = true; return; }
+  S.room.sel = next; persist(); renderMembers(); refresh();
+}));
 // 종합 탭: 내맘대로 중복O / 중복X 넣기 (하나 이상은 꼭 켜져 있어야 함)
 FREE_TABS.forEach(k => $("tf_" + k).addEventListener("click", () => {
   const cur = totalFrees();
@@ -1251,8 +1269,8 @@ FREE_TABS.forEach(k => $("tf_" + k).addEventListener("click", () => {
   if (!next.length) return;
   S.totalFree = next; persist(); applyTab(); refresh();
 }));
-Object.keys(COMBOS).forEach(k => $("combo" + k.toUpperCase()).addEventListener("click", () => {
-  S.room.combo = k; persist(); applyCombo(); refresh();
+COMBO_KEYS.forEach(k => $("combo" + k.toUpperCase()).addEventListener("click", () => {
+  S.room.combo = k; persist(); applyCombo(); renderMembers(); refresh();
 }));
 $("copyBtn").addEventListener("click", () => {
   const ta = $("codeOut");
