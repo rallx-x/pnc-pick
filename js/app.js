@@ -668,8 +668,15 @@ function fitCanvas(canvas, L) {
 }
 function roomMembers() {
   const combo = roomCombo();
-  return S.room.members.map(readCode).filter(Boolean)
-    .map(m => ({ ...m, a: combo === "cc" ? m.company : m.free, b: m.cls }));
+  const meta = S.room.meta || [];
+  return S.room.members.map((code, i) => {
+    const m = readCode(code);
+    if (!m) return null;
+    const e = meta[i] || {};
+    // 모아보기에서 고친 닉네임·하트가 있으면 그걸 우선 (코드 자체는 안 바뀜)
+    return { ...m, idx: i, n: e.n !== undefined ? e.n : m.n, heart: e.h !== undefined ? e.h : m.heart,
+             a: combo === "cc" ? m.company : m.free, b: m.cls };
+  }).filter(Boolean);
 }
 const roomCombo = () => (S.room.combo === "fc" ? "fc" : "cc");
 function render() {
@@ -914,16 +921,59 @@ function choose(c) {
 /* =====================================================================
    모아보기 (다인)
    ===================================================================== */
+let editIdx = -1;   // 모아보기에서 닉네임·하트 고치는 중인 사람
+const roomMeta = () => { if (!Array.isArray(S.room.meta)) S.room.meta = []; return S.room.meta; };
+function setMeta(i, key, val) { const meta = roomMeta(); meta[i] = { ...(meta[i] || {}), [key]: val }; persist(); refresh(); }
 function renderMembers() {
   const ul = $("memberList");
-  ul.replaceChildren(...roomMembers().map((m, i) => {
+  ul.replaceChildren(...roomMembers().map(m => {
+    const i = m.idx;
     const li = document.createElement("li");
-    li.append(document.createTextNode(m.n || T().nobody));
+    if (i === editIdx) li.className = "on";
+    const nm = document.createElement("button"); nm.type = "button"; nm.className = "who"; nm.title = T().memberEdit;
+    nm.textContent = (m.n || T().nobody) + (m.heart && heartOf(m.heart) ? " " + heartOf(m.heart).e : "") + " ✎";
+    nm.addEventListener("click", () => { editIdx = editIdx === i ? -1 : i; renderMembers(); });
     const x = document.createElement("button"); x.type = "button"; x.textContent = "✕"; x.title = T().remove;
-    x.addEventListener("click", () => { S.room.members.splice(i, 1); persist(); renderMembers(); refresh(); });
-    li.append(x); return li;
+    x.addEventListener("click", () => {
+      S.room.members.splice(i, 1); roomMeta().splice(i, 1);
+      if (editIdx === i) editIdx = -1; else if (editIdx > i) editIdx--;
+      persist(); renderMembers(); refresh();
+    });
+    li.append(nm, x); return li;
   }));
   $("roomNameInput").value = S.room.name;
+  renderMemberEdit();
+}
+function renderMemberEdit() {
+  const box = $("memberEdit");
+  const m = roomMembers().find(x => x.idx === editIdx);
+  if (!m) { editIdx = -1; box.hidden = true; box.replaceChildren(); return; }
+  box.hidden = false;
+  const t = T();
+  const lab = document.createElement("label"); lab.className = "field";
+  const sp = document.createElement("span"); sp.textContent = t.nickname;
+  const inp = document.createElement("input"); inp.maxLength = 20; inp.autocomplete = "off"; inp.value = m.n || ""; inp.placeholder = t.nobody;
+  inp.addEventListener("input", () => {
+    setMeta(editIdx, "n", inp.value);
+    const b = $("memberList").querySelector("li.on .who");
+    if (b) b.textContent = (inp.value || t.nobody) + (m.heart && heartOf(m.heart) ? " " + heartOf(m.heart).e : "") + " ✎";
+  });
+  lab.append(sp, inp);
+  const hs = document.createElement("div"); hs.className = "hearts mini";
+  const none = document.createElement("button"); none.type = "button"; none.className = "heart none" + (!m.heart ? " sel" : "");
+  none.textContent = t.heartNone; none.style.setProperty("--hc", "transparent");
+  none.addEventListener("click", () => { setMeta(editIdx, "h", null); renderMembers(); });
+  hs.append(none);
+  HEARTS.forEach(ht => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "heart" + (m.heart === ht.id ? " sel" : "");
+    b.textContent = ht.e; b.style.setProperty("--hc", ht.c);
+    b.addEventListener("click", () => { setMeta(editIdx, "h", ht.id); renderMembers(); });
+    hs.append(b);
+  });
+  const hl = document.createElement("p"); hl.className = "sub"; hl.textContent = t.heartLabel;
+  const done = document.createElement("button"); done.type = "button"; done.className = "btn"; done.textContent = t.done;
+  done.addEventListener("click", () => { editIdx = -1; renderMembers(); });
+  box.replaceChildren(lab, hl, hs, done);
 }
 function addCodes(text) {
   const codes = text.split(/\s+/).map(s => s.trim()).filter(Boolean);
@@ -931,7 +981,7 @@ function addCodes(text) {
   codes.forEach(code => {
     const m = readCode(code);
     if (!m) { bad = true; return; }
-    S.room.members.push(m.code);
+    S.room.members.push(m.code); roomMeta()[S.room.members.length - 1] = null;
   });
   $("roomMsg").textContent = bad ? T().roomBadCode : "";
   persist(); renderMembers(); refresh();
