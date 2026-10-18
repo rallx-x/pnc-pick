@@ -941,10 +941,44 @@ function renderMembers() {
       if (editIdx === i) editIdx = -1; else if (editIdx > i) editIdx--;
       persist(); renderMembers(); refresh();
     });
-    li.append(nm, x); return li;
+    li.dataset.idx = i;
+    if (i === 0) { li.classList.add("host"); li.append(nm, x); return li; }   // 방장(맨 앞)은 고정
+    const g = document.createElement("span"); g.className = "grip"; g.textContent = "⠿"; g.title = T().dragHint;
+    g.addEventListener("pointerdown", e => startDrag(e, li, i));
+    li.append(g, nm, x); return li;
   }));
   $("roomNameInput").value = S.room.name;
   renderMemberEdit();
+}
+// 끌어서 순서 바꾸기 (방장 뒤 사람들만, 마우스·손가락 둘 다)
+function moveMember(from, to) {
+  if (from === to || from < 1 || to < 1) return;
+  const meta = roomMeta();
+  while (meta.length < S.room.members.length) meta.push(null);
+  const [c] = S.room.members.splice(from, 1); S.room.members.splice(to, 0, c);
+  const [mt] = meta.splice(from, 1); meta.splice(to, 0, mt);
+  if (editIdx === from) editIdx = to;
+  else if (editIdx > from && editIdx <= to) editIdx--;
+  else if (editIdx < from && editIdx >= to) editIdx++;
+  persist(); renderMembers(); refresh();
+}
+function startDrag(e, li, from) {
+  e.preventDefault();
+  const ul = $("memberList");
+  li.classList.add("dragging");
+  let to = from;
+  const mark = t => ul.querySelectorAll("li").forEach(x => x.classList.toggle("drop", +x.dataset.idx === t && t !== from));
+  const move = ev => {
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const over = el && el.closest("#memberList li");
+    if (over && !over.classList.contains("host")) { to = +over.dataset.idx; mark(to); }
+  };
+  const up = () => {
+    window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+    li.classList.remove("dragging"); mark(-1);
+    moveMember(from, to);
+  };
+  window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
 }
 function renderMemberEdit() {
   const box = $("memberEdit");
