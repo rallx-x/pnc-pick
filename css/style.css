@@ -28,6 +28,7 @@ body[data-theme="white"] {
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   background: var(--bg); color: var(--text);
   font-family: var(--font); font-size: 16px; line-height: 1.5;
@@ -66,10 +67,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .notice .updates summary::-webkit-details-marker { display: none; }
 .notice .updates summary::after { content: " ▾"; color: var(--accent); }
 .notice .updates[open] summary::after { content: " ▴"; }
-.notice .updates ul { margin: 8px 0 0; padding-left: 0; list-style: none; max-height: 180px; overflow-y: auto; }
+.notice .updates ul { margin: 8px 0 0; padding-left: 0; list-style: none; }
 .notice .updates li { margin: 0 0 4px; }
 .notice .updates .date { color: var(--accent); margin-right: 8px; font-variant-numeric: tabular-nums; }
 .notice-sheet { width: min(560px, 100%); }
+/* 공지 창: 머리·언어·아래 버튼은 고정, 공지 내용만 스크롤 (폰에서 손가락으로 끌어 내리기) */
+.notice-sheet .sheet-head, .notice-sheet .langs, .notice-sheet .sheet-foot { flex: none; }
+.notice-sheet .notice { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
+.save-sheet .save-opts { overflow-y: auto; min-height: 0; }
 .notice-sheet .langs { margin: 4px 16px 12px; flex-wrap: wrap; }
 .notice-sheet .sheet-foot { justify-content: space-between; }
 .notice-sheet .sheet-foot .toggle { padding: 0; }
@@ -169,7 +174,7 @@ main { max-width: 1200px; margin: 0 auto; padding-top: 16px; }
 }
 .sheet {
   background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
-  width: min(760px, 100%); max-height: min(86vh, 900px); display: flex; flex-direction: column;
+  width: min(760px, 100%); max-height: min(86vh, 900px); max-height: min(86dvh, 900px); display: flex; flex-direction: column; overflow: hidden;
 }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; }
 .sheet-head h2 { margin: 0; font-size: 16px; }
@@ -248,6 +253,10 @@ body[data-theme="white"] { --dBack: rgba(220,221,224,.86); --dBox: #f7f7f8; --dT
 .decode .sc { color: var(--dDim); }
 
 @media (max-width: 560px) {
+  .modal { padding: 10px; }
+  .notice-sheet .notice { margin: 0 10px 10px; padding: 8px 10px; font-size: 11px; line-height: 1.6; }
+  .notice-sheet .langs { margin: 2px 10px 8px; }
+  .notice-sheet .langs .seg { padding: 6px 10px; font-size: 12px; }
   .tabs .room-tab { margin-left: 0; }
   .tabs button { padding: 8px 10px; }
   .cards { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
