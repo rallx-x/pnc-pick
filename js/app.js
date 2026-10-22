@@ -22,7 +22,7 @@ const totalFrees = () => { const v = (S.totalFree || ["free"]).filter(isFreeTab)
 const totalSections = () => ["company", "class", ...FREE_TABS.filter(t => totalFrees().includes(t))];
 // 조커칸 히든픽 하트 (id, 이모지, 칸 색)
 const HEARTS = [
-  ["red", "❤️", "#d9434b"], ["pink", "🩷", "#e68aac"], ["orange", "🧡", "#e8843a"], ["yellow", "💛", "#e2bf3c"],
+  ["red", "\uE000", "#d9434b"]   /* 빨간 하트: 사이트 폰트 전용 자리(U+E000)에 넣어 둠 — ❤ 그대로 쓰면 아이폰·트위터 앱이 기본 이모지로 바꿔버려요 */, ["pink", "🩷", "#e68aac"], ["orange", "🧡", "#e8843a"], ["yellow", "💛", "#e2bf3c"],
   ["green", "💚", "#4fa865"], ["blue", "💙", "#3f7fd6"], ["lightblue", "🩵", "#7cc4e6"], ["purple", "💜", "#8a5bc9"],
   ["brown", "🤎", "#8a5a3c"], ["black", "🖤", "#24252a"], ["grey", "🩶", "#8d9097"], ["white", "🤍", "#ecebe8"]
 ].map(([id, e, c]) => ({ id: "h:" + id, e, c }));
@@ -370,7 +370,7 @@ function slotHeader(tab, i, pick) {
     if (i < 7) return { logo: COMPANIES[i] };
     const c = pick && byImg[pick.img];
     // 조커칸 위는 늘 하트 (기본 ❤️, 눌러서 색 변경)
-    return { heart: (S.heart && heartOf(S.heart)) ? heartOf(S.heart).e : "❤️" };
+    return { heart: (S.heart && heartOf(S.heart)) ? heartOf(S.heart).e : "\uE000" };
   }
   if (tab === "class") return { logo: CLASSES[i], label: T().classes[CLASSES[i]] };
   return null;

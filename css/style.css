@@ -5,7 +5,7 @@
 @font-face { font-family: "PNC Pixel"; src: url("../assets/font/pnc-pixel-bold-core.woff") format("woff"); font-weight: 700; font-display: swap; }
 @font-face { font-family: "PNC Pixel"; src: url("../assets/font/pnc-pixel-bold-cjk.woff") format("woff"); font-weight: 700; font-display: swap;
   unicode-range: U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF; }
-@font-face { font-family: "PNC Pixel Emoji"; src: url("../assets/font/pnc-pixel-emoji.woff") format("woff"); font-display: swap; }
+@font-face { font-family: "PNC Pixel Emoji"; src: url("../assets/font/pnc-pixel-emoji.woff?v=2") format("woff"); font-display: swap; }
 
 /* ===== 테마 ===== */
 :root {
